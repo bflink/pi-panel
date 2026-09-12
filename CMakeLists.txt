@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(pi_panel VERSION 1.0 LANGUAGES CXX)
 
+find_package(Qt6 REQUIRED COMPONENTS Core)
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
@@ -20,6 +22,7 @@ target_compile_options(pi_panel_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
 target_include_directories(pi_panel_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(pi_panel main.cpp)
+target_link_libraries(pi_panel PRIVATE Qt6::Core)
 target_link_libraries(pi_panel PRIVATE pi_panel_core)
 target_compile_features(pi_panel PRIVATE cxx_std_20)
 set_target_properties(pi_panel PROPERTIES CXX_EXTENSIONS OFF)
