@@ -1,36 +1,23 @@
 #include "LedController.h"
-#include <iostream>
-
-namespace
-{
-    gpiod::line_request createRequest(unsigned int ledPin,
-                                      unsigned int buttonPin,
-                                      const std::string &chipPath)
-    {
-
-        gpiod::chip chip{chipPath};
-        return chip.prepare_request()
-            .set_consumer("pi-panel")
-            .add_line_settings(
-                ledPin,
-                gpiod::line_settings{}
-                    .set_direction(gpiod::line::direction::OUTPUT)
-                    .set_output_value(gpiod::line::value::INACTIVE))
-            .add_line_settings(
-                buttonPin,
-                gpiod::line_settings{}
-                    .set_direction(gpiod::line::direction::INPUT)
-                    .set_bias(gpiod::line::bias::PULL_UP))
-            .do_request();
-    }
-}
+#include "GpiodService.h"
 
 LedController::LedController(unsigned int ledPin,
                              unsigned int buttonPin,
                              const std::string &chipPath)
     : m_ledPin(ledPin),
       m_buttonPin(buttonPin),
-      m_request(createRequest(ledPin, buttonPin, chipPath))
+      m_ledOn(false),
+      m_gpioService(std::make_shared<GpiodService>(ledPin, buttonPin, chipPath))
+{
+}
+
+LedController::LedController(std::shared_ptr<IGpioService> gpioService,
+                             unsigned int ledPin,
+                             unsigned int buttonPin)
+    : m_ledPin(ledPin),
+      m_buttonPin(buttonPin),
+      m_ledOn(false),
+      m_gpioService(std::move(gpioService))
 {
 }
 
@@ -53,17 +40,27 @@ bool LedController::isOn() const
 
 bool LedController::isButtonPressed() const
 {
-    return m_request.get_value(m_buttonPin) == gpiod::line::value::INACTIVE;
+    if (!m_gpioService)
+    {
+        return false;
+    }
+    return m_gpioService->getLineValue(m_buttonPin) == gpiod::line::value::INACTIVE;
 }
 
 void LedController::turnOff()
 {
-    m_request.set_value(m_ledPin, gpiod::line::value::INACTIVE);
+    if (m_gpioService)
+    {
+        m_gpioService->setLineValue(m_ledPin, gpiod::line::value::INACTIVE);
+    }
     m_ledOn = false;
 }
 
 void LedController::toggle()
 {
-    m_request.set_value(m_ledPin, m_ledOn ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
+    if (m_gpioService)
+    {
+        m_gpioService->setLineValue(m_ledPin, m_ledOn ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
+    }
     m_ledOn = !m_ledOn;
 }

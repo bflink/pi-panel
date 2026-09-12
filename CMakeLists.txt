@@ -1,18 +1,54 @@
 cmake_minimum_required(VERSION 3.20)
 project(pi_panel VERSION 1.0 LANGUAGES CXX)
 
-add_executable(pi_panel main.cpp Controllers/LedController.cpp)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+endif()
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GPIOD REQUIRED IMPORTED_TARGET libgpiodcxx)
 
-target_link_libraries(pi_panel PRIVATE PkgConfig::GPIOD)
+add_library(pi_panel_core
+    Controllers/ButtonDebouncher.cpp
+    Controllers/GpiodService.cpp
+    Controllers/LedController.cpp
+)
+target_link_libraries(pi_panel_core PUBLIC PkgConfig::GPIOD)
+target_compile_features(pi_panel_core PUBLIC cxx_std_20)
+set_target_properties(pi_panel_core PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options(pi_panel_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_include_directories(pi_panel_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
-endif()
-
+add_executable(pi_panel main.cpp)
+target_link_libraries(pi_panel PRIVATE pi_panel_core)
 target_compile_features(pi_panel PRIVATE cxx_std_20)
 set_target_properties(pi_panel PROPERTIES CXX_EXTENSIONS OFF)
-
 target_compile_options(pi_panel PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
+# Unit Testing with GoogleTest
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+# For Windows: Prevent overriding parent project compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
+add_executable(pi_panel_tests
+    tests/LedControllerTests.cpp
+    tests/ButtonDebouncerTests.cpp
+)
+target_link_libraries(pi_panel_tests PRIVATE
+    pi_panel_core
+    GTest::gtest_main
+)
+target_compile_features(pi_panel_tests PRIVATE cxx_std_20)
+set_target_properties(pi_panel_tests PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options(pi_panel_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
+include(GoogleTest)
+gtest_discover_tests(pi_panel_tests)

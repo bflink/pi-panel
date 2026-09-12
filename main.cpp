@@ -4,6 +4,7 @@
 #include <iostream>
 #include <thread>
 #include "Controllers/LedController.h"
+#include "Controllers/ButtonDebouncher.h"
 
 namespace
 {
@@ -28,33 +29,21 @@ int main()
     {
         LedController ledController;
 
-        bool lastReading = ledController.isButtonPressed();
-        bool stablePressed = lastReading;
-        auto lastChange = Clock::now();
-
+        ButtonDebouncer buttonDebouncer{
+            ledController.isButtonPressed(),
+            Clock::now()};
+            
         std::cout << "Press the button to toggle the LED.\n"
                   << "Press Ctrl+C to exit.\n";
 
         while (!stopRequested)
         {
-            const bool reading = ledController.isButtonPressed();
+            const bool pressed = ledController.isButtonPressed();
             const auto now = Clock::now();
 
-            // Restart the debounce interval on every raw change.
-            if (reading != lastReading)
+            if (buttonDebouncer.update(pressed, now))
             {
-                lastReading = reading;
-                lastChange = now;
-            }
-
-            // Accept the new state after 30 ms without changes.
-            if (reading != stablePressed &&
-                now - lastChange >= 30ms)
-            {
-                stablePressed = reading;
-
-                // Toggle on a press, but not on a release.
-                if (stablePressed)
+                if (pressed)
                 {
                     ledController.toggle();
 
