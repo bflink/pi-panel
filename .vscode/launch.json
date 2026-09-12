@@ -9,7 +9,11 @@
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
-            "environment": [],
+            "environment": [
+                { "name": "DISPLAY", "value": ":0" },
+                { "name": "XDG_RUNTIME_DIR", "value": "/run/user/1000" },
+                { "name": "QT_QPA_PLATFORM", "value": "xcb" }
+            ],
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/gdb",

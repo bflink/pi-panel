@@ -1,4 +1,6 @@
-#include <QCoreApplication>
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QUrl>
 #include <QObject>
 #include <QTimer>
 
@@ -25,7 +27,7 @@ int main(int argc, char* argv[])
     using namespace std::chrono_literals;
     using Clock = ButtonDebouncer::Clock;
 
-    QCoreApplication application(argc, argv);
+    QGuiApplication application(argc, argv);
 
     std::signal(SIGINT, handleInterrupt);
     std::signal(SIGTERM, handleInterrupt);
@@ -83,6 +85,11 @@ int main(int argc, char* argv[])
         std::cout << "Press the button to toggle the LED.\n"
                   << "Press Ctrl+C to exit.\n";
 
+        QQmlApplicationEngine engine;
+        engine.load(QUrl{QStringLiteral("qrc:/PiPanel/Main.qml")});
+
+        if (engine.rootObjects().isEmpty())
+            return 1;
         pollTimer.start();
 
         const int exitCode = application.exec();
