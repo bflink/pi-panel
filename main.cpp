@@ -21,6 +21,8 @@ int main()
     using Clock = std::chrono::steady_clock;
 
     std::signal(SIGINT, handleInterrupt);
+    std::signal(SIGTERM, handleInterrupt);
+    std::signal(SIGHUP, handleInterrupt);
 
     try
     {
