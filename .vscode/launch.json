@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug pi_panel",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/pi_panel",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "preLaunchTask": "CMake: build pi_panel (Debug)"
+        }
+    ]
+}
