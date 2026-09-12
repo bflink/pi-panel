@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(pi_panel VERSION 1.0 LANGUAGES CXX)
 
-add_executable(pi_panel main.cpp)
+add_executable(pi_panel main.cpp Controllers/LedController.cpp)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GPIOD REQUIRED IMPORTED_TARGET libgpiodcxx)

@@ -1,9 +1,9 @@
-#include <gpiod.hpp>
 #include <chrono>
 #include <csignal>
 #include <exception>
 #include <iostream>
 #include <thread>
+#include "Controllers/LedController.h"
 
 namespace
 {
@@ -17,41 +17,22 @@ namespace
 
 int main()
 {
-   
     using namespace std::chrono_literals;
     using Clock = std::chrono::steady_clock;
 
-    constexpr unsigned int ledPin = 17;
-    constexpr unsigned int buttonPin = 27;
-
     std::signal(SIGINT, handleInterrupt);
 
-    try {
-        gpiod::chip chip{"/dev/gpiochip0"};
+    try
+    {
+        LedController ledController;
 
-        auto request = chip.prepare_request()
-            .set_consumer("pi-panel")
-            .add_line_settings(
-                ledPin,
-                gpiod::line_settings{}
-                    .set_direction(gpiod::line::direction::OUTPUT)
-                    .set_output_value(gpiod::line::value::INACTIVE))
-            .add_line_settings(
-                buttonPin,
-                gpiod::line_settings{}
-                    .set_direction(gpiod::line::direction::INPUT)
-                    .set_bias(gpiod::line::bias::PULL_UP))
-            .do_request();
-
-            // With a pull-up, pressing the button connects the pin
+        // With a pull-up, pressing the button connects the pin
         // to ground, so a low reading means "pressed".
-        auto isPressed = [&request]()
+        auto isPressed = [&ledController]()
         {
-            return request.get_value(buttonPin)
-                == gpiod::line::value::INACTIVE;
+            return ledController.isButtonPressed();
         };
 
-         bool ledOn = false;
         bool lastReading = isPressed();
         bool stablePressed = lastReading;
         auto lastChange = Clock::now();
@@ -59,7 +40,7 @@ int main()
         std::cout << "Press the button to toggle the LED.\n"
                   << "Press Ctrl+C to exit.\n";
 
-                  while (!stopRequested)
+        while (!stopRequested)
         {
             const bool reading = isPressed();
             const auto now = Clock::now();
@@ -80,23 +61,18 @@ int main()
                 // Toggle on a press, but not on a release.
                 if (stablePressed)
                 {
-                    ledOn = !ledOn;
-
-                    request.set_value(
-                        ledPin,
-                        ledOn ? gpiod::line::value::ACTIVE
-                              : gpiod::line::value::INACTIVE);
+                    ledController.toggle();
 
                     std::cout << "LED: "
-                              << (ledOn ? "ON" : "OFF")
-                              << std::endl;
+                              << (ledController.isOn() ? "ON" : "OFF")
+                              << '\n';
                 }
             }
 
             std::this_thread::sleep_for(5ms);
         }
 
-        request.set_value(ledPin, gpiod::line::value::INACTIVE);
+        ledController.turnOff();
     }
     catch (const std::exception& error)
     {
@@ -104,5 +80,5 @@ int main()
         return 1;
     }
 
-      
+    return 0;
 }
