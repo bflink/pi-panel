@@ -3,6 +3,11 @@ project(pi_panel VERSION 1.0 LANGUAGES CXX)
 
 add_executable(pi_panel main.cpp)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GPIOD REQUIRED IMPORTED_TARGET libgpiodcxx)
+
+target_link_libraries(pi_panel PRIVATE PkgConfig::GPIOD)
+
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
