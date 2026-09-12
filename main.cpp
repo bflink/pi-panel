@@ -26,14 +26,7 @@ int main()
     {
         LedController ledController;
 
-        // With a pull-up, pressing the button connects the pin
-        // to ground, so a low reading means "pressed".
-        auto isPressed = [&ledController]()
-        {
-            return ledController.isButtonPressed();
-        };
-
-        bool lastReading = isPressed();
+        bool lastReading = ledController.isButtonPressed();
         bool stablePressed = lastReading;
         auto lastChange = Clock::now();
 
@@ -42,7 +35,7 @@ int main()
 
         while (!stopRequested)
         {
-            const bool reading = isPressed();
+            const bool reading = ledController.isButtonPressed();
             const auto now = Clock::now();
 
             // Restart the debounce interval on every raw change.
