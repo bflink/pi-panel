@@ -10,7 +10,7 @@
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "environment": [
-                { "name": "DISPLAY", "value": ":0" },
+                { "name": "DISPLAY", "value": ":10.0" },
                 { "name": "XDG_RUNTIME_DIR", "value": "/run/user/1000" },
                 { "name": "QT_QPA_PLATFORM", "value": "xcb" }
             ],

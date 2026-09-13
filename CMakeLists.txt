@@ -22,6 +22,12 @@ target_compile_options(pi_panel_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
 target_include_directories(pi_panel_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(pi_panel main.cpp)
+
+target_sources(pi_panel PRIVATE
+    ViewModels/LedViewModel.h
+    ViewModels/LedViewModel.cpp
+)
+
 set_target_properties(pi_panel PROPERTIES AUTOMOC ON)
 
 qt_add_qml_module(pi_panel

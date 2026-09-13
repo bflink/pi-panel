@@ -9,7 +9,7 @@ ApplicationWindow {
     visible: true
     title: "Pi Panel"
 
-    property bool indicatorOn: false
+    required property QtObject ledViewModel
 
     Column {
         anchors.centerIn: parent
@@ -21,23 +21,27 @@ ApplicationWindow {
             radius: 40
             anchors.horizontalCenter: parent.horizontalCenter
 
-            color: window.indicatorOn ? "limegreen" : "#444444"
+            color: window.ledViewModel.ledOn
+                   ? "limegreen"
+                   : "#444444"
+
             border.color: "#222222"
             border.width: 2
         }
 
         Label {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: window.indicatorOn ? "Indicator ON" : "Indicator OFF"
+
+            text: window.ledViewModel.ledOn
+                  ? "LED ON"
+                  : "LED OFF"
         }
 
         Button {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "Toggle indicator"
+            text: "Toggle LED"
 
-            onClicked: {
-                window.indicatorOn = !window.indicatorOn
-            }
+            onClicked: window.ledViewModel.toggle()
         }
     }
 }

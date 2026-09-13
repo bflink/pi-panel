@@ -3,6 +3,8 @@
 #include <QUrl>
 #include <QObject>
 #include <QTimer>
+#include <QVariant>
+#include "ViewModels/LedViewModel.h"
 
 #include <chrono>
 #include <csignal>
@@ -36,6 +38,7 @@ int main(int argc, char* argv[])
     try
     {
         LedController ledController;
+        LedViewModel ledViewModel{ledController};
 
         ButtonDebouncer buttonDebouncer{
             ledController.isButtonPressed(),
@@ -66,14 +69,14 @@ int main(int argc, char* argv[])
 
                     if (buttonDebouncer.update(pressed, Clock::now()))
                     {
-                        ledController.toggle();
+                        ledViewModel.toggle();
 
                         std::cout << "LED: "
                                   << (ledController.isOn() ? "ON" : "OFF")
                                   << '\n';
                     }
                 }
-                catch (const std::exception& error)
+                catch (const std::exception &error)
                 {
                     std::cerr << "GPIO error: "
                               << error.what() << '\n';
@@ -86,6 +89,10 @@ int main(int argc, char* argv[])
                   << "Press Ctrl+C to exit.\n";
 
         QQmlApplicationEngine engine;
+
+        engine.setInitialProperties({{QStringLiteral("ledViewModel"),
+                                      QVariant::fromValue(&ledViewModel)}});
+
         engine.load(QUrl{QStringLiteral("qrc:/PiPanel/Main.qml")});
 
         if (engine.rootObjects().isEmpty())
