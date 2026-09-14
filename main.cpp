@@ -8,15 +8,65 @@
 
 #include <chrono>
 #include <csignal>
+#include <cstdlib>
 #include <exception>
 #include <iostream>
 
+#include "Controllers/Ads1015.h"
 #include "Controllers/LedController.h"
 #include "Controllers/ButtonDebouncher.h"
+#include "Controllers/Thermistor.h"
 
 namespace
 {
     volatile std::sig_atomic_t stopRequested = 0;
+
+    std::string adcDevicePath()
+    {
+        const char* configuredPath = std::getenv("PI_PANEL_I2C_DEVICE");
+        return configuredPath != nullptr ? configuredPath : "/dev/i2c-1";
+    }
+
+    double configuredDouble(const char* name, double defaultValue)
+    {
+        const char* value = std::getenv(name);
+        if (value == nullptr)
+        {
+            return defaultValue;
+        }
+
+        std::size_t parsedCharacters = 0;
+        const double parsedValue = std::stod(value, &parsedCharacters);
+        if (value[parsedCharacters] != '\0')
+        {
+            throw std::invalid_argument(std::string{name} + " must be a number");
+        }
+        return parsedValue;
+    }
+
+    Thermistor::Configuration thermistorConfiguration()
+    {
+        Thermistor::Configuration configuration;
+        configuration.supplyVoltage = configuredDouble(
+            "PI_PANEL_DIVIDER_VOLTS", configuration.supplyVoltage);
+        configuration.fixedResistanceOhms = configuredDouble(
+            "PI_PANEL_FIXED_RESISTOR_OHMS", configuration.fixedResistanceOhms);
+        configuration.nominalResistanceOhms = configuredDouble(
+            "PI_PANEL_THERMISTOR_NOMINAL_OHMS", configuration.nominalResistanceOhms);
+        configuration.nominalTemperatureCelsius = configuredDouble(
+            "PI_PANEL_THERMISTOR_NOMINAL_C", configuration.nominalTemperatureCelsius);
+        configuration.betaKelvin = configuredDouble(
+            "PI_PANEL_THERMISTOR_BETA", configuration.betaKelvin);
+
+        const char* thermistorToGround =
+            std::getenv("PI_PANEL_THERMISTOR_TO_GROUND");
+        if (thermistorToGround != nullptr)
+        {
+            configuration.thermistorToGround =
+                std::string{thermistorToGround} != "0";
+        }
+        return configuration;
+    }
 
     void handleInterrupt(int)
     {
@@ -38,7 +88,9 @@ int main(int argc, char* argv[])
     try
     {
         LedController ledController;
-        LedViewModel ledViewModel{ledController};
+        Ads1015 adc{adcDevicePath()};
+        Thermistor thermistor{thermistorConfiguration()};
+        LedViewModel ledViewModel{ledController, adc, thermistor};
 
         ButtonDebouncer buttonDebouncer{
             ledController.isButtonPressed(),
@@ -47,6 +99,9 @@ int main(int argc, char* argv[])
         QTimer pollTimer;
         pollTimer.setInterval(5ms);
         pollTimer.setTimerType(Qt::PreciseTimer);
+
+        QTimer analogTimer;
+        analogTimer.setInterval(200ms);
 
         QObject::connect(
             &pollTimer,
@@ -62,28 +117,34 @@ int main(int argc, char* argv[])
 
                 // Handle errors here so exceptions don't escape
                 // through Qt's event-dispatch code.
-                try
-                {
-                    const bool pressed =
-                        ledController.isButtonPressed();
+                // try
+                // {
+                //     const bool pressed =
+                //         ledController.isButtonPressed();
 
-                    if (buttonDebouncer.update(pressed, Clock::now()))
-                    {
-                        ledViewModel.toggle();
+                //     if (buttonDebouncer.update(pressed, Clock::now()))
+                //     {
+                //         ledViewModel.toggle();
 
-                        std::cout << "LED: "
-                                  << (ledController.isOn() ? "ON" : "OFF")
-                                  << '\n';
-                    }
-                }
-                catch (const std::exception &error)
-                {
-                    std::cerr << "GPIO error: "
-                              << error.what() << '\n';
+                //         std::cout << "LED: "
+                //                   << (ledController.isOn() ? "ON" : "OFF")
+                //                   << '\n';
+                //     }
+                // }
+                // catch (const std::exception &error)
+                // {
+                //     std::cerr << "GPIO error: "
+                //               << error.what() << '\n';
 
-                    application.exit(1);
-                }
+                //     application.exit(1);
+                // }
             });
+
+        QObject::connect(
+            &analogTimer,
+            &QTimer::timeout,
+            &ledViewModel,
+            &LedViewModel::sampleAnalogInput);
 
         std::cout << "Press the button to toggle the LED.\n"
                   << "Press Ctrl+C to exit.\n";
@@ -97,10 +158,14 @@ int main(int argc, char* argv[])
 
         if (engine.rootObjects().isEmpty())
             return 1;
+
+        ledViewModel.sampleAnalogInput();
         pollTimer.start();
+        analogTimer.start();
 
         const int exitCode = application.exec();
 
+        analogTimer.stop();
         pollTimer.stop();
         ledController.turnOff();
 

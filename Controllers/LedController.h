@@ -7,7 +7,7 @@ class LedController
 {
 public:
     explicit LedController(unsigned int ledPin = 17,
-                           unsigned int buttonPin = 27,
+                           unsigned int buttonPin = 23,
                            const std::string& chipPath = "/dev/gpiochip0");
 
     explicit LedController(std::shared_ptr<IGpioService> gpioService,

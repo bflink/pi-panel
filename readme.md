@@ -103,6 +103,53 @@ DISPLAY=localhost:10.0 XDG_RUNTIME_DIR=/run/user/1000 QT_QPA_PLATFORM=xcb QT_QUI
 
 The environment entries in `launch.json` apply to the debugged process; they do not set variables in VS Code’s terminal.
 
+## Explorer HAT Pro analog input
+
+The window reads Explorer HAT Pro **Analog 1** five times per second and displays the measured voltage. The HAT uses an ADS1015 ADC at I2C address `0x48`; Pimoroni maps the Analog 1 terminal to ADC channel 3.
+
+The voltage is also converted to Fahrenheit using the thermistor beta equation. The defaults assume:
+
+- 3.3 V divider supply
+- 10 kΩ fixed resistor from 3.3 V to Analog 1
+- 10 kΩ NTC thermistor from Analog 1 to ground
+- 10 kΩ nominal resistance at 25°C
+- 3950 K beta value
+
+Match these values to the thermistor datasheet and measured supply for accurate readings. They can be overridden when launching:
+
+```bash
+PI_PANEL_DIVIDER_VOLTS=3.3 \
+PI_PANEL_FIXED_RESISTOR_OHMS=10000 \
+PI_PANEL_THERMISTOR_NOMINAL_OHMS=10000 \
+PI_PANEL_THERMISTOR_NOMINAL_C=25 \
+PI_PANEL_THERMISTOR_BETA=3950 \
+./build/pi_panel
+```
+
+If the thermistor is connected to the supply and the fixed resistor is connected to ground, also set `PI_PANEL_THERMISTOR_TO_GROUND=0`.
+
+The Raspberry Pi header I2C interface must be enabled. On this Pi, `/dev/i2c-1` is currently absent and `raspi-config nonint get_i2c` reports that the interface is disabled. Run this yourself in a terminal, then reboot:
+
+```bash
+sudo raspi-config nonint do_i2c 0
+sudo reboot
+```
+
+After reconnecting, verify that the bus and HAT are visible:
+
+```bash
+ls -l /dev/i2c-1
+i2cdetect -y 1
+```
+
+The scan should show `48` for the ADC and normally `28` for the Explorer HAT touch controller. If the header bus has a different number, set `PI_PANEL_I2C_DEVICE` when launching the app, for example:
+
+```bash
+PI_PANEL_I2C_DEVICE=/dev/i2c-3 ./build/pi_panel
+```
+
+The application remains usable when the ADC cannot be read and displays the I2C error below the voltage area. The logged-in user must belong to the `i2c` group; user `bill` already does on this Pi.
+
 ## Stop the application
 
 - **Close the QML window** for a normal exit. Your code exits the event loop and calls `ledController.turnOff()`.
@@ -137,9 +184,8 @@ DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/1000 QT_QPA_PLATFORM=xcb ./build/pi_panel
 
 ## Current application behavior
 
-- The physical button passes through `ButtonDebouncer` and toggles the real LED.
-- A Qt timer polls the hardware every 5 ms; the debouncer uses elapsed time.
-- The QML button currently toggles only its onscreen indicator.
-- The next coding step is a `LedViewModel` exposing the real LED state to QML, so the physical and onscreen controls share that state.
+- The QML button toggles the real LED and updates the onscreen indicator through `LedViewModel`.
+- Explorer HAT Pro Analog 1 is sampled every 200 ms and displayed in volts and degrees Fahrenheit.
+- ADC connection errors are displayed in the window without stopping LED control.
 
 This cheat sheet records the existing setup from our session. The deprecated Remote X11 extension is not part of it.

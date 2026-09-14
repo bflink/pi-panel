@@ -11,9 +11,11 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GPIOD REQUIRED IMPORTED_TARGET libgpiodcxx)
 
 add_library(pi_panel_core
+    Controllers/Ads1015.cpp
     Controllers/ButtonDebouncher.cpp
     Controllers/GpiodService.cpp
     Controllers/LedController.cpp
+    Controllers/Thermistor.cpp
 )
 target_link_libraries(pi_panel_core PUBLIC PkgConfig::GPIOD)
 target_compile_features(pi_panel_core PUBLIC cxx_std_20)
@@ -64,6 +66,7 @@ enable_testing()
 add_executable(pi_panel_tests
     tests/LedControllerTests.cpp
     tests/ButtonDebouncerTests.cpp
+    tests/ThermistorTests.cpp
 )
 target_link_libraries(pi_panel_tests PRIVATE
     pi_panel_core
