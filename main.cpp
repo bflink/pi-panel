@@ -15,6 +15,7 @@
 #include "Controllers/Ads1015.h"
 #include "Controllers/LedController.h"
 #include "Controllers/ButtonDebouncher.h"
+#include "Controllers/SystemTemperatureReader.h"
 #include "Controllers/Thermistor.h"
 
 namespace
@@ -90,7 +91,12 @@ int main(int argc, char* argv[])
         LedController ledController;
         Ads1015 adc{adcDevicePath()};
         Thermistor thermistor{thermistorConfiguration()};
-        LedViewModel ledViewModel{ledController, adc, thermistor};
+        SystemTemperatureReader systemTemperatureReader;
+        LedViewModel ledViewModel{
+            ledController,
+            adc,
+            thermistor,
+            systemTemperatureReader};
 
         ButtonDebouncer buttonDebouncer{
             ledController.isButtonPressed(),
@@ -102,6 +108,9 @@ int main(int argc, char* argv[])
 
         QTimer analogTimer;
         analogTimer.setInterval(200ms);
+
+        QTimer systemTemperatureTimer;
+        systemTemperatureTimer.setInterval(2s);
 
         QObject::connect(
             &pollTimer,
@@ -144,6 +153,12 @@ int main(int argc, char* argv[])
             &ledViewModel,
             &LedViewModel::sampleAnalogInput);
 
+        QObject::connect(
+            &systemTemperatureTimer,
+            &QTimer::timeout,
+            &ledViewModel,
+            &LedViewModel::sampleSystemTemperatures);
+
         std::cout << "Press the button to toggle the LED.\n"
                   << "Press Ctrl+C to exit.\n";
 
@@ -158,11 +173,14 @@ int main(int argc, char* argv[])
             return 1;
 
         ledViewModel.sampleAnalogInput();
+        ledViewModel.sampleSystemTemperatures();
         pollTimer.start();
         analogTimer.start();
+        systemTemperatureTimer.start();
 
         const int exitCode = application.exec();
 
+        systemTemperatureTimer.stop();
         analogTimer.stop();
         pollTimer.stop();
         ledController.turnOff();

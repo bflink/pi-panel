@@ -165,6 +165,7 @@ DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/1000 QT_QPA_PLATFORM=xcb ./build/pi_panel
 - The QML button toggles the real LED and updates the onscreen indicator through `LedViewModel`.
 - A button on Explorer HAT Input 1 toggles the LED after a 30 ms debounce interval.
 - Explorer HAT Pro Analog 1 is sampled every 200 ms and displayed in volts and degrees Fahrenheit.
+- Available CPU, RP1 controller, NVMe, and other hwmon temperatures are sampled every two seconds and shown in a secondary panel.
 - ADC connection errors are displayed in the window without stopping LED control.
 
 This cheat sheet records the existing setup from our session. The deprecated Remote X11 extension is not part of it.

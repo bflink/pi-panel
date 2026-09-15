@@ -27,6 +27,7 @@ Pi Panel is a Qt Quick application that controls Raspberry Pi GPIO and reads an 
 | `Controllers/LedController` | Owns LED state and translates LED/button operations into GPIO calls |
 | `Controllers/Ads1015` | Reads Explorer HAT Pro analog channels over Linux I2C |
 | `Controllers/Thermistor` | Converts divider voltage into degrees Fahrenheit |
+| `Controllers/SystemTemperatureReader` | Discovers internal CPU, RP1, NVMe, and other Linux hwmon temperatures |
 | `ViewModels/LedViewModel` | Exposes LED, voltage, temperature, and error state to QML |
 | `Main.qml` | Displays the LED control, measured voltage, temperature, and errors |
 
@@ -49,6 +50,8 @@ flowchart LR
 ```
 
 The analog timer calls `LedViewModel::sampleAnalogInput()` every 200 ms. The view model first reads ADC channel 3, which is Explorer HAT Pro Analog 1, and then passes that voltage to the thermistor conversion. Qt property notification signals cause QML labels to refresh.
+
+A separate two-second timer scans Linux hwmon temperature inputs. The view model exposes all discovered readings to the secondary system-temperature panel in QML.
 
 The 5 ms GPIO timer handles shutdown signals and polls Explorer HAT Input 1. A stable physical-button press and the QML button both call `LedViewModel::toggle()`, so both controls update the real LED and the onscreen state.
 
@@ -75,5 +78,6 @@ ctest --test-dir build --output-on-failure
 
 - [LED control](led.md)
 - [Thermistor and temperature](thermistor.md)
+- [System temperatures](system-temperatures.md)
 
 General setup, I2C configuration, and display-launch instructions remain in the project root `readme.md`.

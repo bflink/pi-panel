@@ -15,6 +15,7 @@ add_library(pi_panel_core
     Controllers/ButtonDebouncher.cpp
     Controllers/GpiodService.cpp
     Controllers/LedController.cpp
+    Controllers/SystemTemperatureReader.cpp
     Controllers/Thermistor.cpp
 )
 target_link_libraries(pi_panel_core PUBLIC PkgConfig::GPIOD)
@@ -66,6 +67,7 @@ enable_testing()
 add_executable(pi_panel_tests
     tests/LedControllerTests.cpp
     tests/ButtonDebouncerTests.cpp
+    tests/SystemTemperatureReaderTests.cpp
     tests/ThermistorTests.cpp
 )
 target_link_libraries(pi_panel_tests PRIVATE

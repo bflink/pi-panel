@@ -1,19 +1,23 @@
 #include "LedViewModel.h"
 #include "../Controllers/Ads1015.h"
 #include "../Controllers/LedController.h"
+#include "../Controllers/SystemTemperatureReader.h"
 #include "../Controllers/Thermistor.h"
 
 #include <exception>
+#include <QVariantMap>
 
 LedViewModel::LedViewModel(
     LedController& ledController,
     Ads1015& adc,
     Thermistor& thermistor,
+    SystemTemperatureReader& systemTemperatureReader,
     QObject* parent)
     : QObject(parent),
       m_ledController(ledController),
       m_adc(adc),
-      m_thermistor(thermistor)
+    m_thermistor(thermistor),
+    m_systemTemperatureReader(systemTemperatureReader)
 {
 }
 
@@ -50,6 +54,11 @@ bool LedViewModel::isTemperatureAvailable() const
 QString LedViewModel::temperatureError() const
 {
     return m_temperatureError;
+}
+
+QVariantList LedViewModel::systemTemperatures() const
+{
+    return m_systemTemperatures;
 }
 
 void LedViewModel::toggle()
@@ -116,4 +125,20 @@ void LedViewModel::sampleAnalogInput()
             emit temperatureStatusChanged();
         }
     }
+}
+
+void LedViewModel::sampleSystemTemperatures()
+{
+    QVariantList temperatures;
+    for (const auto& reading :
+         m_systemTemperatureReader.readTemperatures())
+    {
+        temperatures.append(QVariantMap{
+            {QStringLiteral("name"),
+             QString::fromStdString(reading.name)},
+            {QStringLiteral("fahrenheit"), reading.fahrenheit}});
+    }
+
+    m_systemTemperatures = std::move(temperatures);
+    emit systemTemperaturesChanged();
 }
