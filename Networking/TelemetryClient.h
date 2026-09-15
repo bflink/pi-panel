@@ -16,7 +16,7 @@
 class TelemetryClient final
 {
 public:
-    enum Stream : std::size_t { Temperature, Pressure, Waveform, StreamCount };
+    enum Stream : std::size_t { Temperature, Pressure, Waveform, Monitor, StreamCount };
     struct Reading
     {
         bool connected = false;
@@ -31,6 +31,8 @@ public:
         std::array<Reading, StreamCount> readings;
         std::vector<Point> waveform;
         std::uint64_t revision = 0;
+        std::array<Reading, 8> parameters;
+        std::array<std::vector<Point>, 8> trends;
     };
     struct Options
     {
@@ -54,6 +56,8 @@ private:
     void subscribe(Stream stream, Start start, Value value);
     void watchForStalls();
     bool record(Stream stream, double value, const pi::telemetry::v1::SampleMetadata& metadata);
+    bool recordMonitor(const pi::telemetry::v1::MonitorFrame& frame);
+    void clearMonitor(); // mutex_ held
 
     Options options_;
     std::unique_ptr<pi::telemetry::v1::Telemetry::Stub> stub_;
@@ -64,6 +68,8 @@ private:
     std::array<std::chrono::steady_clock::time_point, StreamCount> lastActivity_{};
     std::array<Reading, StreamCount> readings_;
     std::deque<Point> waveform_;
+    std::array<Reading, 8> parameters_;
+    std::array<std::deque<Point>, 8> trends_;
     std::uint64_t revision_ = 0;
     std::array<std::thread, StreamCount> workers_;
     std::thread watchdog_;

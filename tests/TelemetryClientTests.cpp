@@ -30,6 +30,30 @@ public:
     std::atomic<bool> stall{false};
     std::atomic<bool> dropWaveform{false};
     std::atomic<unsigned> waveformCalls{0};
+    std::atomic<bool> pscActive{true};
+    grpc::Status StreamMonitor(grpc::ServerContext* c, const wire::MonitorRequest*,
+                               grpc::ServerWriter<wire::MonitorFrame>* w) override
+    {
+        std::uint64_t sequence = 0;
+        bool previous = false;
+        while (!c->IsCancelled()) {
+            if (!stall.load()) {
+                wire::MonitorFrame f;
+                f.mutable_metadata()->set_sequence(sequence++);
+                f.mutable_metadata()->set_elapsed_seconds(static_cast<double>(sequence) / 10);
+                const bool active = pscActive.load();
+                f.set_psc_cable_connected(active);
+                f.set_psc_sensor_connected(active);
+                if (active && !previous) {
+                    auto* v = f.add_values(); v->set_type(wire::CO); v->set_value(5.2);
+                }
+                previous = active;
+                if (!w->Write(f)) break;
+            }
+            std::this_thread::sleep_for(20ms);
+        }
+        return grpc::Status::OK;
+    }
 
     template<class Sample, class SetValue>
     grpc::Status stream(grpc::ServerContext* c, grpc::ServerWriter<Sample>* w,
@@ -64,7 +88,7 @@ public:
                                 grpc::ServerWriter<wire::WaveformSample>* w) override
     {
         ++waveformCalls;
-        return stream(c, w, true, [](auto& s) { s.set_volts(1.65); });
+        return stream(c, w, true, [this](auto& s) { s.set_volts(1.65); s.set_inactive(!pscActive); });
     }
 };
 
@@ -103,6 +127,20 @@ int main()
         const auto full = client.snapshot();
         require(full.waveform.size() == TelemetryClient::waveformCapacity, "Waveform buffer not bounded");
         require(full.waveform.front().seconds < full.waveform.back().seconds, "Wrong waveform order");
+        require(full.parameters[0].available && full.parameters[0].value == 5.2 && full.trends[0].size() == 1,
+                "Heartbeat discarded or duplicated the slow parameter reading");
+        fixture.pscActive = false;
+        eventually([&] {
+            auto state = client.snapshot();
+            return !state.parameters[0].available && state.trends[0].empty() &&
+                !state.readings[TelemetryClient::Waveform].available && state.waveform.empty();
+        }, "PSC disconnection left stale waveform or trend");
+        std::this_thread::sleep_for(600ms);
+        require(client.snapshot().readings[TelemetryClient::Monitor].available,
+                "Inactive heartbeat triggered watchdog");
+        fixture.pscActive = true;
+        eventually([&] { return client.snapshot().parameters[0].available && allAvailable(client.snapshot()); },
+                   "PSC reconnection did not resume readings");
 
         fixture.dropWaveform = true;
         eventually([&] {

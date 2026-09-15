@@ -21,6 +21,7 @@ class TelemetryViewModel final : public QObject
     Q_PROPERTY(double pressureKilopascals READ pressureKilopascals NOTIFY updated)
     Q_PROPERTY(double waveformVolts READ waveformVolts NOTIFY updated)
     Q_PROPERTY(QVariantList waveformPoints READ waveformPoints NOTIFY updated)
+    Q_PROPERTY(QVariantList trendChannels READ trendChannels NOTIFY trendsChanged)
 public:
     explicit TelemetryViewModel(QObject* parent = nullptr);
     ~TelemetryViewModel() override;
@@ -36,13 +37,16 @@ public:
     double pressureKilopascals() const { return reading(TelemetryClient::Pressure).value; }
     double waveformVolts() const { return reading(TelemetryClient::Waveform).value; }
     QVariantList waveformPoints() const { return waveformPoints_; }
+    QVariantList trendChannels() const { return trendChannels_; }
     Q_INVOKABLE void connectToServer(const QString& address);
     Q_INVOKABLE void disconnectFromServer();
 signals:
     void endpointChanged();
     void updated();
+    void trendsChanged();
 private:
     void refresh();
+    void refreshTrends();
     const TelemetryClient::Reading& reading(TelemetryClient::Stream stream) const
     { return snapshot_.readings[stream]; }
     QString status(TelemetryClient::Stream stream) const;
@@ -51,5 +55,6 @@ private:
     std::unique_ptr<TelemetryClient> client_;
     TelemetryClient::Snapshot snapshot_;
     QVariantList waveformPoints_;
+    QVariantList trendChannels_;
     QTimer refreshTimer_;
 };

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <type_traits>
 
 namespace wire = pi::telemetry::v1;
 using namespace std::chrono_literals;
@@ -34,6 +35,11 @@ TelemetryClient::TelemetryClient(const std::string& address, Options options)
                 [this](auto* c, const auto& r) { return stub_->StreamWaveform(c, r); },
                 [](const auto& s) { return s.volts(); });
         });
+        workers_[Monitor] = std::thread([this] {
+            subscribe<wire::MonitorFrame>(Monitor,
+                [this](auto* c, const auto&) { return stub_->StreamMonitor(c, wire::MonitorRequest{}); },
+                [](const auto&) { return 0.0; });
+        });
         watchdog_ = std::thread([this] { watchForStalls(); });
     }
     catch (...)
@@ -64,7 +70,68 @@ void TelemetryClient::stop()
 TelemetryClient::Snapshot TelemetryClient::snapshot() const
 {
     std::lock_guard lock(mutex_);
-    return {readings_, {waveform_.begin(), waveform_.end()}, revision_};
+    Snapshot result;
+    result.readings = readings_;
+    result.waveform.assign(waveform_.begin(), waveform_.end());
+    result.revision = revision_;
+    result.parameters = parameters_;
+    for (std::size_t i = 0; i < trends_.size(); ++i)
+        result.trends[i].assign(trends_[i].begin(), trends_[i].end());
+    return result;
+}
+
+void TelemetryClient::clearMonitor()
+{
+    for (std::size_t i = 0; i < parameters_.size(); ++i) {
+        parameters_[i] = {};
+        parameters_[i].status = "Monitor disconnected";
+        trends_[i].clear();
+    }
+}
+
+bool TelemetryClient::recordMonitor(const wire::MonitorFrame& frame)
+{
+    if (!frame.has_metadata() || !std::isfinite(frame.metadata().elapsed_seconds())) return false;
+    for (const auto& value : frame.values())
+        if (value.type() < wire::CO || value.type() > wire::STO2_B2 || !std::isfinite(value.value()))
+            return false;
+    std::lock_guard lock(mutex_);
+    if (stopping_) return false;
+    lastActivity_[Monitor] = std::chrono::steady_clock::now();
+    readings_[Monitor].connected = readings_[Monitor].available = true;
+    readings_[Monitor].status = "Connected";
+    readings_[Monitor].sequence = frame.metadata().sequence();
+    std::array<bool, 8> active{};
+    for (std::size_t i = 0; i < 4; ++i)
+        active[i] = frame.psc_cable_connected() && frame.psc_sensor_connected();
+    for (const auto type : frame.connected_sto2())
+        if (type >= wire::STO2_A1 && type <= wire::STO2_B2) active[static_cast<std::size_t>(type - 1)] = true;
+    for (std::size_t i = 0; i < parameters_.size(); ++i) {
+        parameters_[i].connected = active[i];
+        if (!active[i]) {
+            parameters_[i].available = false;
+            parameters_[i].status = i < 4 ? "PSC cable / sensor disconnected" : "Channel disconnected";
+            trends_[i].clear();
+        } else if (!parameters_[i].available) parameters_[i].status = "Waiting for reading";
+    }
+    for (const auto& value : frame.values()) {
+        const auto i = static_cast<std::size_t>(value.type() - 1);
+        if (!active[i]) continue;
+        auto& reading = parameters_[i];
+        reading.available = true;
+        reading.value = value.value();
+        reading.status = "Connected";
+        reading.sequence = frame.metadata().sequence();
+        const double seconds = frame.metadata().elapsed_seconds();
+        auto& history = trends_[i];
+        if (!history.empty() && seconds <= history.back().seconds) history.clear();
+        // Ten minutes, plus a strict count cap even if a server sends too fast.
+        while (!history.empty() && (history.size() >= 301 || seconds - history.front().seconds > 600))
+            history.pop_front();
+        history.push_back({seconds, value.value()});
+    }
+    ++revision_;
+    return true;
 }
 
 bool TelemetryClient::record(Stream stream, double value, const wire::SampleMetadata& metadata)
@@ -104,6 +171,7 @@ void TelemetryClient::subscribe(Stream stream, Start start, Value value)
             readings_[stream].available = false;
             readings_[stream].status = "Connecting";
             if (stream == Waveform) waveform_.clear();
+            if (stream == Monitor) clearMonitor();
             ++revision_;
         }
         // Keep the server's defaults: temperature 1, pressure 10, waveform 100 Hz.
@@ -114,7 +182,22 @@ void TelemetryClient::subscribe(Stream stream, Start start, Value value)
         bool invalid = false;
         while (reader->Read(&sample))
         {
-            if (!sample.has_metadata() || !record(stream, value(sample), sample.metadata()))
+            bool valid = false;
+            if constexpr (std::is_same_v<Sample, wire::MonitorFrame>) {
+                valid = recordMonitor(sample);
+            } else if constexpr (std::is_same_v<Sample, wire::WaveformSample>) {
+                if (sample.inactive() && sample.has_metadata()) {
+                    std::lock_guard lock(mutex_);
+                    lastActivity_[stream] = std::chrono::steady_clock::now();
+                    readings_[stream].connected = true;
+                    readings_[stream].available = false;
+                    readings_[stream].status = "PSC cable / sensor disconnected";
+                    waveform_.clear();
+                    ++revision_;
+                    valid = true;
+                } else valid = sample.has_metadata() && record(stream, value(sample), sample.metadata());
+            } else valid = sample.has_metadata() && record(stream, value(sample), sample.metadata());
+            if (!valid)
             {
                 invalid = true;
                 context.TryCancel();
@@ -133,6 +216,7 @@ void TelemetryClient::subscribe(Stream stream, Start start, Value value)
                 status.ok() ? "Stream ended; retrying" : "Disconnected; retrying (" +
                     std::to_string(static_cast<int>(status.error_code())) + ")";
             if (stream == Waveform) waveform_.clear();
+            if (stream == Monitor) clearMonitor();
             ++revision_;
             if (received) retry = options_.retryInitial;
             if (wake_.wait_for(lock, retry, [this] { return stopping_; })) return;
@@ -155,6 +239,7 @@ void TelemetryClient::watchForStalls()
                 readings_[i].available = false;
                 readings_[i].status = "No data; reconnecting";
                 if (i == Waveform) waveform_.clear();
+                if (i == Monitor) clearMonitor();
                 ++revision_;
                 contexts_[i]->TryCancel();
             }
