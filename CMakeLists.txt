@@ -8,9 +8,10 @@ include(cmake/Telemetry.cmake)
 if(PI_PANEL_BUILD_GUI)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
 
-add_library(pi_telemetry_qt ViewModels/TelemetryViewModel.h ViewModels/TelemetryViewModel.cpp)
+add_library(pi_telemetry_qt ViewModels/TelemetryViewModel.h ViewModels/TelemetryViewModel.cpp
+    ViewModels/PerformanceViewModel.h ViewModels/PerformanceViewModel.cpp)
 set_target_properties(pi_telemetry_qt PROPERTIES AUTOMOC ON)
-target_link_libraries(pi_telemetry_qt PUBLIC Qt6::Core pi_telemetry)
+target_link_libraries(pi_telemetry_qt PUBLIC Qt6::Core Qt6::Quick pi_telemetry)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)

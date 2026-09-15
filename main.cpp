@@ -6,6 +6,8 @@
 #include <QVariant>
 #include "ViewModels/LedViewModel.h"
 #include "ViewModels/TelemetryViewModel.h"
+#include "ViewModels/PerformanceViewModel.h"
+#include <QQuickWindow>
 
 #include <chrono>
 #include <csignal>
@@ -93,6 +95,7 @@ int main(int argc, char* argv[])
         Thermistor thermistor{thermistorConfiguration()};
         LedViewModel ledViewModel{ledController, adc, thermistor};
         TelemetryViewModel telemetryViewModel;
+        PerformanceViewModel performanceViewModel{telemetryViewModel};
         QObject::connect(&application, &QCoreApplication::aboutToQuit,
                          &telemetryViewModel, &TelemetryViewModel::disconnectFromServer);
 
@@ -156,12 +159,15 @@ int main(int argc, char* argv[])
         engine.setInitialProperties({{QStringLiteral("ledViewModel"),
                                       QVariant::fromValue(&ledViewModel)},
                                      {QStringLiteral("telemetryViewModel"),
-                                      QVariant::fromValue(&telemetryViewModel)}});
+                                      QVariant::fromValue(&telemetryViewModel)},
+                                     {QStringLiteral("performanceViewModel"),
+                                      QVariant::fromValue(&performanceViewModel)}});
 
         engine.load(QUrl{QStringLiteral("qrc:/PiPanel/Main.qml")});
 
         if (engine.rootObjects().isEmpty())
             return 1;
+        performanceViewModel.attachWindow(qobject_cast<QQuickWindow*>(engine.rootObjects().first()));
 
         ledViewModel.sampleAnalogInput();
         pollTimer.start();

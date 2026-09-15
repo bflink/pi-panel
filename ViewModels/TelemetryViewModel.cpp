@@ -47,6 +47,10 @@ void TelemetryViewModel::connectToServer(const QString& address)
 void TelemetryViewModel::disconnectFromServer()
 {
     refreshTimer_.stop();
+    if (client_) {
+        client_->stop();
+        completedSamples_ += client_->receivedSamples();
+    }
     client_.reset();
     snapshot_ = {};
     waveformPoints_.clear();
