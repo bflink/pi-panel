@@ -1,24 +1,26 @@
 # Pi Panel — Run and Debug Cheat Sheet
 
-Bill’s current setup: C++ / Qt Quick application on the Pi, edited and debugged from VS Code on Windows. The application runs on the Pi and controls its GPIO; XLaunch displays its window on Windows, with PuTTY supplying the X11 forwarding connection.
+Implementation documentation is available in [`documentation/README.md`](documentation/README.md), with separate guides for the [LED](documentation/led.md) and [thermistor](documentation/thermistor.md).
 
-## Everyday startup
+Bill’s current setup: C++ / Qt Quick application on the Pi, edited and debugged from VS Code on Windows. The default debug configuration displays the application on the Pi desktop and does not require PuTTY or XLaunch. A separate forwarded-X11 configuration remains available when displaying the window on Windows is useful.
 
-1. **Start XLaunch on Windows.** Choose **Multiple windows → Display number 0 → Start no client**. Leave **Disable access control unchecked**.
-2. **Open your saved PuTTY session** to the Pi as `bill`, with X11 forwarding enabled (settings below).
-3. In **PuTTY**, check the forwarded display:
+## Run on the Pi desktop
 
-   ```bash
-   echo $DISPLAY
-   ```
+1. Log in to the graphical desktop on the Pi as `bill`.
+2. Connect VS Code to the Pi and open `~/projects/pi-panel`.
+3. Open **Run and Debug** and select **Debug pi_panel on Pi desktop**.
+4. Press **F5**. The application opens directly on the Pi desktop.
 
-   Expect a value such as `localhost:10.0`. Use the actual value—it can change after reconnecting.
+The local profile uses the Pi desktop’s Xwayland display (`DISPLAY=:0`) and `/home/bill/.Xauthority`. It starts immediately without pausing at the program entry point.
 
-4. **Connect VS Code to the Pi** and open `~/projects/pi-panel`.
-5. Make sure the `DISPLAY` entry in `.vscode/launch.json` matches PuTTY’s value.
-6. Press **F5 in VS Code**. With `stopAtEntry: true`, press **F5 again** after the initial pause.
+## Display on Windows with X11 forwarding
 
-**Leave XLaunch and PuTTY running. You can minimize PuTTY; you do not need to launch the application there.** F5 launches and debugs the application.
+1. Start XLaunch on Windows. Choose **Multiple windows → Display number 0 → Start no client**. Leave **Disable access control unchecked**.
+2. Open the saved PuTTY session with X11 forwarding enabled.
+3. Run `echo $DISPLAY` in PuTTY and update the `DISPLAY` value in **Debug pi_panel over forwarded X11** if it differs.
+4. Select that debug configuration in VS Code and press **F5**.
+
+Leave XLaunch and PuTTY running while using the forwarded configuration.
 
 ## Saved PuTTY settings
 

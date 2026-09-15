@@ -2,7 +2,26 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug pi_panel",
+            "name": "Debug pi_panel on Pi desktop",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/pi_panel",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                { "name": "DISPLAY", "value": ":0" },
+                { "name": "XAUTHORITY", "value": "/home/bill/.Xauthority" },
+                { "name": "XDG_RUNTIME_DIR", "value": "/run/user/1000" },
+                { "name": "QT_QPA_PLATFORM", "value": "xcb" }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "preLaunchTask": "CMake: build pi_panel (Debug)"
+        },
+        {
+            "name": "Debug pi_panel over forwarded X11",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/pi_panel",
