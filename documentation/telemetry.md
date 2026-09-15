@@ -113,6 +113,11 @@ thread. It does not post a Qt event for each waveform sample.
 The client retains at most **500 waveform samples** (about five seconds at the
 default rate). When the GUI is busy, the oldest samples are discarded. The
 chart uses the server's monotonic elapsed seconds and a 0-3.3 V display range.
+It sweeps from left to right every five seconds, keeping the previous sweep
+visible ahead of the new trace. A 150 ms blank band ahead of the drawing
+position separates old and new data, including across the screen edge.
+Samples stay at fixed horizontal positions instead of scrolling each refresh;
+the trace is never joined across the right-to-left wrap.
 The initial history fills gradually. Each reconnect clears waveform history
 and accepts a fresh sequence starting at zero, including server restarts.
 

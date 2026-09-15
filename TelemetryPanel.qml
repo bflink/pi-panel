@@ -85,6 +85,9 @@ ScrollView {
         }
         Canvas {
             id: chart
+            property real sweepOrigin: -1
+            readonly property real sweepSeconds: 5
+            readonly property real blankSeconds: 0.15
             width: parent.width
             height: 150
             onWidthChanged: requestPaint()
@@ -100,27 +103,42 @@ ScrollView {
                 ctx.lineTo(width, height / 2)
                 ctx.stroke()
                 const points = panel.telemetryViewModel.waveformPoints
-                if (points.length < 2) return
+                if (points.length === 0) { sweepOrigin = -1; return }
+                if (sweepOrigin < 0 || points[points.length - 1].seconds < sweepOrigin)
+                    sweepOrigin = points[0].seconds
                 const end = points[points.length - 1].seconds
                 ctx.strokeStyle = "#5de3c4"
                 ctx.lineWidth = 2
                 ctx.beginPath()
                 let first = true
+                let previousX = -1
                 for (let i = 0; i < points.length; ++i) {
-                    const x = width * (points[i].seconds - end + 5) / 5
-                    if (x < 0) continue
+                    // Fixed time positions preserve the previous sweep ahead of
+                    // the pen. Omit its oldest samples to leave a moving gap.
+                    if (end - points[i].seconds >= sweepSeconds - blankSeconds) {
+                        first = true
+                        continue
+                    }
+                    const phase = (points[i].seconds - sweepOrigin) % sweepSeconds
+                    const x = width * phase / sweepSeconds
                     const y = height * (1 - Math.max(0, Math.min(3.3, points[i].volts)) / 3.3)
-                    if (first) { ctx.moveTo(x, y); first = false }
+                    // Never join the right edge to the left across a wrap.
+                    if (first || x < previousX) { ctx.moveTo(x, y); first = false }
                     else ctx.lineTo(x, y)
+                    previousX = x
                 }
                 ctx.stroke()
             }
             Connections {
                 target: panel.telemetryViewModel
-                function onUpdated() { if (chart.visible) chart.requestPaint() }
+                function onUpdated() {
+                    if (panel.telemetryViewModel.waveformPoints.length === 0)
+                        chart.sweepOrigin = -1
+                    if (chart.visible) chart.requestPaint()
+                }
             }
         }
-        Label { text: "Last 5 seconds · 0–3.3 V" }
+        Label { text: "5-second sweep · 0–3.3 V" }
         Label {
             width: parent.width
             wrapMode: Text.Wrap

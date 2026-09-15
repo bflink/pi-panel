@@ -85,7 +85,8 @@ int main(int argc, char** argv)
             {
                 tabs->setProperty("currentIndex", 1);
                 telemetry.connectToServer(QStringLiteral("127.0.0.1:%1").arg(port));
-                QTimer::singleShot(1500, &app, [&] {
+                // Let the five-second sweep wrap before checking the window.
+                QTimer::singleShot(6500, &app, [&] {
                     const bool ready = telemetry.temperatureAvailable() && telemetry.pressureAvailable() &&
                         telemetry.waveformAvailable() && telemetry.waveformPoints().size() > 5;
                     const bool captured = argc <= 1 ||
