@@ -1,5 +1,21 @@
 # Pi Panel Architecture
 
+Two print-ready PDF snapshots are available:
+
+- [Pi Panel Documentation Guide](pi-panel-guide.pdf) is the user and hardware setup manual.
+- [Pi Panel Software Design Description](pi-panel-sdd.pdf) is the formal software architecture and design baseline.
+
+The editable print sources are `pi-panel-guide.html` and `pi-panel-sdd.html`.
+
+> **PDF refresh policy:** These PDFs are controlled snapshots. Do not regenerate them as part of ordinary code or Markdown changes. Regenerate a PDF only when the project owner explicitly requests a refresh.
+
+Manual generation commands:
+
+```bash
+bash documentation/generate-pdf.sh
+bash documentation/generate-sdd-pdf.sh
+```
+
 Pi Panel is a Qt Quick application that controls Raspberry Pi GPIO and reads an analog thermistor through a Pimoroni Explorer HAT Pro. The executable is built with CMake and uses C++ for hardware access and application state, with QML for the window.
 
 ## Component overview
@@ -34,15 +50,16 @@ flowchart LR
 
 The analog timer calls `LedViewModel::sampleAnalogInput()` every 200 ms. The view model first reads ADC channel 3, which is Explorer HAT Pro Analog 1, and then passes that voltage to the thermistor conversion. Qt property notification signals cause QML labels to refresh.
 
-The 5 ms GPIO timer currently handles shutdown signals. Its physical-button polling block is present but commented out in `main.cpp`, so the physical button does not currently toggle the LED. The QML button does call `LedViewModel::toggle()` and controls the real LED.
+The 5 ms GPIO timer handles shutdown signals and polls Explorer HAT Input 1. A stable physical-button press and the QML button both call `LedViewModel::toggle()`, so both controls update the real LED and the onscreen state.
 
 ## Error handling
 
-Hardware exceptions are caught at the view-model boundary:
+Hardware exceptions are caught before they escape into Qt event dispatch:
 
 - LED errors emit `operationFailed`.
 - ADC errors set `analogAvailable` to false and expose `analogError`.
 - Conversion errors set `temperatureAvailable` to false and expose `temperatureError`.
+- GPIO polling errors are caught in the 5 ms timer callback and exit the application with an error.
 
 An ADC or thermistor error is shown in the window and does not stop LED control.
 

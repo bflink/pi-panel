@@ -18,8 +18,7 @@ gpiod::line_request GpiodService::createRequest(unsigned int ledPin,
             .add_line_settings(
                 buttonPin,
                 gpiod::line_settings{}
-                    .set_direction(gpiod::line::direction::INPUT)
-                    .set_bias(gpiod::line::bias::PULL_UP))
+                    .set_direction(gpiod::line::direction::INPUT))
             .do_request();
     }
     catch (const std::exception& error)

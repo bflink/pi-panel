@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pi Panel Software Design Description</title>
+    <style>
+        :root {
+            --ink: #172026;
+            --muted: #52616b;
+            --accent: #006d77;
+            --accent-light: #e2f2f1;
+            --rule: #b9c5ca;
+            --code: #f2f5f6;
+        }
+        @page {
+            size: A4;
+            margin: 17mm 18mm 19mm;
+            @bottom-left {
+                content: "Pi Panel SDD  |  Baseline 1.0";
+                color: #52616b;
+                font: 8.5pt "DejaVu Sans", sans-serif;
+            }
+            @bottom-right {
+                content: "Page " counter(page);
+                color: #52616b;
+                font: 8.5pt "DejaVu Sans", sans-serif;
+            }
+        }
+        @page :first {
+            margin: 0;
+            @bottom-left { content: none; }
+            @bottom-right { content: none; }
+        }
+        * { box-sizing: border-box; }
+        html { color: var(--ink); font: 10pt/1.43 "DejaVu Sans", sans-serif; }
+        body { margin: 0; }
+        h1, h2, h3 { color: #103f45; line-height: 1.2; page-break-after: avoid; }
+        h1 { margin: 0 0 6mm; border-bottom: 2px solid var(--accent); padding-bottom: 3mm; font-size: 22pt; }
+        h2 { margin: 6mm 0 2.5mm; font-size: 14pt; }
+        h3 { margin: 4mm 0 2mm; font-size: 11pt; }
+        p, li { orphans: 3; widows: 3; }
+        a { color: var(--accent); text-decoration: none; }
+        code { border-radius: 2px; background: var(--code); padding: .1em .3em; font: 9pt "DejaVu Sans Mono", monospace; }
+        pre { overflow: hidden; border-left: 4px solid var(--accent); background: var(--code); padding: 3.5mm; white-space: pre-wrap; font: 8.5pt/1.4 "DejaVu Sans Mono", monospace; page-break-inside: avoid; }
+        table { width: 100%; margin: 3mm 0 5mm; border-collapse: collapse; font-size: 9pt; }
+        th, td { border-bottom: 1px solid var(--rule); padding: 2.2mm 2mm; text-align: left; vertical-align: top; }
+        th { background: var(--accent-light); color: #103f45; }
+        tr { page-break-inside: avoid; }
+        ul, ol { padding-left: 6mm; }
+        .cover { display: flex; width: 210mm; height: 297mm; flex-direction: column; justify-content: space-between; background: #f7fbfa; padding: 30mm 27mm 26mm; page-break-after: always; }
+        .cover-mark { width: 29mm; height: 7mm; background: var(--accent); }
+        .cover h1 { max-width: 155mm; margin-top: 26mm; border: 0; padding: 0; color: #103f45; font-size: 35pt; }
+        .cover .subtitle { max-width: 145mm; color: var(--muted); font-size: 16pt; }
+        .cover .meta { border-top: 1px solid var(--rule); padding-top: 6mm; color: var(--muted); }
+        .page { page-break-before: always; }
+        .toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; }
+        .toc li { display: flex; border-bottom: 1px dotted var(--rule); padding: 2.3mm 0; counter-increment: toc; }
+        .toc li::before { content: counter(toc, decimal-leading-zero); width: 12mm; color: var(--accent); font-weight: bold; }
+        .toc li a { flex: 1; }
+        .page-number { color: var(--muted); font-variant-numeric: tabular-nums; }
+        .callout { margin: 4mm 0; border: 1px solid #88b7b4; border-left-width: 5px; background: var(--accent-light); padding: 3.5mm 4mm; page-break-inside: avoid; }
+        .diagram { margin: 4mm 0; border: 1px solid var(--rule); background: #fbfdfd; padding: 4mm; font: 8.5pt/1.35 "DejaVu Sans Mono", monospace; white-space: pre; page-break-inside: avoid; }
+        .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 4mm 0; page-break-inside: avoid; }
+        .flow div { position: relative; border: 1px solid #88b7b4; background: #f7fbfa; padding: 3mm 2mm; text-align: center; font-weight: bold; }
+        .flow div:not(:last-child)::after { content: "→"; position: absolute; right: -4mm; color: var(--accent); }
+        .status { display: inline-block; border: 1px solid #88b7b4; border-radius: 10px; background: var(--accent-light); padding: 1mm 3mm; color: #103f45; font-weight: bold; }
+        .small { color: var(--muted); font-size: 8.5pt; }
+        .nowrap { white-space: nowrap; }
+        @media screen {
+            body { max-width: 210mm; margin: 0 auto; background: #dce3e5; }
+            .page, .toc { min-height: 297mm; background: white; padding: 17mm 18mm 19mm; }
+        }
+    </style>
+</head>
+<body>
+    <section class="cover">
+        <div>
+            <div class="cover-mark"></div>
+            <h1>Software Design Description</h1>
+            <p class="subtitle">Pi Panel hardware control and temperature monitoring application</p>
+        </div>
+        <div class="meta">
+            <strong>Document ID:</strong> PI-PANEL-SDD<br>
+            <strong>Baseline:</strong> 1.0<br>
+            <strong>Status:</strong> Approved design snapshot<br>
+            <strong>Snapshot date:</strong> 14 September 2026<br>
+            <strong>Platform:</strong> Raspberry Pi 5 / Explorer HAT Pro / Qt 6 / C++20
+        </div>
+    </section>
+
+    <section class="toc page" id="contents">
+        <h1>Document Control</h1>
+        <table>
+            <tbody>
+                <tr><th>Purpose</th><td>Describe the implemented software architecture, interfaces, behavior, constraints, and verification strategy.</td></tr>
+                <tr><th>Scope</th><td>The <code>pi-panel</code> repository at baseline 1.0.</td></tr>
+                <tr><th>Audience</th><td>Developers, maintainers, integrators, and reviewers.</td></tr>
+                <tr><th>Source of truth</th><td>Checked-in source code and tests. This PDF is a controlled snapshot.</td></tr>
+                <tr><th>Refresh policy</th><td>Regenerate this PDF only when the project owner explicitly requests a documentation refresh.</td></tr>
+            </tbody>
+        </table>
+        <h2>Table of Contents</h2>
+        <ol>
+            <li><a href="#introduction">Introduction</a><span class="page-number">3</span></li>
+            <li><a href="#context">System context and constraints</a><span class="page-number">4</span></li>
+            <li><a href="#architecture">Architecture</a><span class="page-number">5</span></li>
+            <li><a href="#components">Component design</a><span class="page-number">6</span></li>
+            <li><a href="#interfaces">Interfaces and contracts</a><span class="page-number">7</span></li>
+            <li><a href="#behavior">Dynamic behavior</a><span class="page-number">8</span></li>
+            <li><a href="#data">State and configuration</a><span class="page-number">9</span></li>
+            <li><a href="#quality">Reliability and quality attributes</a><span class="page-number">10</span></li>
+            <li><a href="#deployment">Build and deployment design</a><span class="page-number">11</span></li>
+            <li><a href="#verification">Verification and evolution</a><span class="page-number">12</span></li>
+        </ol>
+    </section>
+
+    <section class="page" id="introduction">
+        <h1>1. Introduction</h1>
+        <h2>1.1 Purpose</h2>
+        <p>This Software Design Description (SDD) records how Pi Panel is structured and how its implemented parts collaborate. It is intended to support maintenance, review, testing, and future feature design.</p>
+
+        <h2>1.2 Product scope</h2>
+        <p>Pi Panel is a single-process graphical application running on a Raspberry Pi 5. It provides:</p>
+        <ul>
+            <li>Control of an Explorer HAT Pro onboard LED.</li>
+            <li>Debounced input from a physical button connected to Explorer HAT Input 1.</li>
+            <li>Voltage acquisition from Explorer HAT Analog 1.</li>
+            <li>Conversion of thermistor voltage into degrees Fahrenheit.</li>
+            <li>Display of LED state, voltage, temperature, and recoverable measurement errors.</li>
+        </ul>
+
+        <h2>1.3 Out of scope</h2>
+        <ul>
+            <li>Network services, remote APIs, user accounts, and persistent storage.</li>
+            <li>Automatic service startup at boot.</li>
+            <li>Closed-loop temperature control or safety interlocks.</li>
+            <li>Automatic thermistor calibration or sensor identification.</li>
+        </ul>
+
+        <h2>1.4 Design principles</h2>
+        <ul>
+            <li>Keep hardware access behind narrow C++ abstractions.</li>
+            <li>Keep QML declarative and free of hardware details.</li>
+            <li>Use timer-driven work on the Qt event thread for the current small workload.</li>
+            <li>Convert hardware failures into explicit UI state or controlled termination.</li>
+            <li>Make pure logic independently testable without Raspberry Pi hardware.</li>
+        </ul>
+    </section>
+
+    <section class="page" id="context">
+        <h1>2. System Context and Constraints</h1>
+        <h2>2.1 External context</h2>
+        <div class="diagram">User
+ ├── QML button ────────────────┐
+ └── Physical push button ──┐   │
+                            ▼   ▼
+                    [ Pi Panel process ]
+                       │            │
+                 libgpiod        Linux I2C
+                       │            │
+              GPIO 17 / GPIO 23   ADS1015 0x48
+                       │            │
+                 LED / Input 1    Analog 1 thermistor</div>
+
+        <h2>2.2 Hardware constraints</h2>
+        <table>
+            <thead><tr><th>Resource</th><th>Constraint</th></tr></thead>
+            <tbody>
+                <tr><td>LED</td><td>Explorer HAT LED 2 maps to BCM GPIO 17.</td></tr>
+                <tr><td>Button</td><td>Explorer HAT Input 1 maps to BCM GPIO 23 and is active-high.</td></tr>
+                <tr><td>Input bias</td><td>The HAT buffer prevents Pi internal bias from controlling the external input; an external pull-down is required.</td></tr>
+                <tr><td>ADC</td><td>ADS1015 at I2C address <code>0x48</code>; Analog 1 maps to ADC channel 3.</td></tr>
+                <tr><td>Thermistor</td><td>Default model assumes 10 kΩ NTC, β=3950 K, 25°C nominal, and a 3.3 V divider.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>2.3 Software constraints</h2>
+        <ul>
+            <li>Linux with <code>libgpiodcxx</code> and the Linux I2C device API.</li>
+            <li>Qt 6 Core, Gui, Qml, and Quick.</li>
+            <li>C++20 with compiler warnings treated as errors.</li>
+            <li>The application user requires access to GPIO and the selected <code>/dev/i2c-*</code> device.</li>
+            <li>Only one process may own the requested GPIO lines.</li>
+        </ul>
+    </section>
+
+    <section class="page" id="architecture">
+        <h1>3. Architecture</h1>
+        <h2>3.1 Architectural style</h2>
+        <p>The application uses a small layered, event-driven design. QML is the presentation layer, <code>LedViewModel</code> is the presentation boundary, controllers contain device-oriented behavior, and services perform operating-system I/O.</p>
+
+        <div class="diagram">┌─────────────────────────────────────────────┐
+│ Presentation: Main.qml                      │
+│ Controls, labels, bindings, error messages  │
+└──────────────────────┬──────────────────────┘
+                       │ Qt properties/signals
+┌──────────────────────▼──────────────────────┐
+│ View model: LedViewModel                    │
+│ UI state, commands, exception translation   │
+└──────────────┬───────────────────┬──────────┘
+               │                   │
+┌──────────────▼──────────┐  ┌─────▼───────────────┐
+│ LedController           │  │ Thermistor          │
+│ LED/button semantics    │  │ Pure conversion     │
+└──────────────┬──────────┘  └─────────────────────┘
+               │                  ▲
+┌──────────────▼──────────┐  ┌────┴────────────────┐
+│ GpiodService            │  │ Ads1015             │
+│ Linux GPIO adapter      │  │ Linux I2C adapter   │
+└─────────────────────────┘  └─────────────────────┘</div>
+
+        <h2>3.2 Dependency direction</h2>
+        <ul>
+            <li>QML depends on the view-model contract, not controller types.</li>
+            <li>The view model depends on controller and conversion objects by reference; <code>main.cpp</code> owns their lifetime.</li>
+            <li><code>LedController</code> depends on <code>IGpioService</code>, allowing a mock implementation in tests.</li>
+            <li><code>Thermistor</code> has no Qt or hardware dependency.</li>
+            <li><code>Ads1015</code> and <code>GpiodService</code> are Linux-specific boundary adapters.</li>
+        </ul>
+
+        <h2>3.3 Concurrency model</h2>
+        <p>The current application is single-threaded at the application level. Both timers execute callbacks on the Qt event thread. ADC conversion includes short sleeps while waiting for hardware, bounded by a 100 ms timeout.</p>
+    </section>
+
+    <section class="page" id="components">
+        <h1>4. Component Design</h1>
+        <table>
+            <thead><tr><th>Component</th><th>Responsibilities</th><th>Owned state/resources</th></tr></thead>
+            <tbody>
+                <tr><td><code>main</code></td><td>Composition root, signal registration, timer scheduling, QML engine setup, shutdown.</td><td>Controllers, view model, timers, Qt application.</td></tr>
+                <tr><td><code>GpiodService</code></td><td>Request LED and button lines; read/write logical values.</td><td><code>gpiod::line_request</code>.</td></tr>
+                <tr><td><code>LedController</code></td><td>Track LED state; map toggle/off commands to GPIO; interpret active-high button.</td><td>Pin numbers, LED state, shared GPIO service.</td></tr>
+                <tr><td><code>ButtonDebouncer</code></td><td>Accept a press only after stable input for the configured interval.</td><td>Last raw reading, stable state, last transition time.</td></tr>
+                <tr><td><code>Ads1015</code></td><td>Open I2C lazily; configure conversion; wait; decode voltage.</td><td>I2C path, address, file descriptor.</td></tr>
+                <tr><td><code>Thermistor</code></td><td>Validate configuration and convert voltage to Fahrenheit.</td><td>Immutable conversion configuration.</td></tr>
+                <tr><td><code>LedViewModel</code></td><td>Expose QML properties, invoke controllers, maintain availability/error state.</td><td>References and current UI-facing values.</td></tr>
+                <tr><td><code>Main.qml</code></td><td>Render state and forward the toggle command.</td><td>Visual object state only.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>4.1 Lifetime and ownership</h2>
+        <p><code>main.cpp</code> constructs objects in dependency order: <code>LedController</code>, <code>Ads1015</code>, <code>Thermistor</code>, then <code>LedViewModel</code>. They remain on the stack until the Qt event loop exits. The view model stores references, so it cannot outlive those dependencies.</p>
+
+        <h2>4.2 Resource acquisition</h2>
+        <p>GPIO lines are requested during <code>GpiodService</code> construction. The ADC file descriptor is opened lazily on the first read and closed by <code>Ads1015</code> destruction. Copying <code>Ads1015</code> is disabled to prevent duplicate descriptor ownership.</p>
+    </section>
+
+    <section class="page" id="interfaces">
+        <h1>5. Interfaces and Contracts</h1>
+        <h2>5.1 Internal C++ interfaces</h2>
+        <table>
+            <thead><tr><th>Operation</th><th>Contract</th></tr></thead>
+            <tbody>
+                <tr><td><code>IGpioService::setLineValue</code></td><td>Write a logical value to a requested output line; may throw on OS/hardware failure.</td></tr>
+                <tr><td><code>IGpioService::getLineValue</code></td><td>Read a requested input line; may throw on OS/hardware failure.</td></tr>
+                <tr><td><code>LedController::toggle</code></td><td>Write the inverse output and update stored state only after the write succeeds.</td></tr>
+                <tr><td><code>ButtonDebouncer::update</code></td><td>Return true only when a stable transition into pressed state reaches the debounce interval.</td></tr>
+                <tr><td><code>Ads1015::readVoltage</code></td><td>Accept channels 0–3; return non-negative volts; throw on invalid channel, I/O failure, or timeout.</td></tr>
+                <tr><td><code>Thermistor::temperatureFahrenheit</code></td><td>Require voltage strictly between zero and supply; return beta-model temperature.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>5.2 QML-facing contract</h2>
+        <table>
+            <thead><tr><th>Property/command</th><th>Meaning</th></tr></thead>
+            <tbody>
+                <tr><td><code>ledOn</code> / <code>toggle()</code></td><td>Current controller state and user command.</td></tr>
+                <tr><td><code>analogVoltage</code></td><td>Most recent successful Analog 1 sample.</td></tr>
+                <tr><td><code>analogAvailable</code>, <code>analogError</code></td><td>ADC status and diagnostic text.</td></tr>
+                <tr><td><code>temperatureFahrenheit</code></td><td>Most recent successful conversion.</td></tr>
+                <tr><td><code>temperatureAvailable</code>, <code>temperatureError</code></td><td>Conversion status and diagnostic text.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>5.3 External interfaces</h2>
+        <ul>
+            <li>GPIO character device through <code>libgpiodcxx</code>.</li>
+            <li>Linux I2C device through <code>open</code>, <code>ioctl(I2C_SLAVE)</code>, <code>read</code>, and <code>write</code>.</li>
+            <li>Qt platform plugin through the selected desktop environment.</li>
+            <li>Process environment variables for thermistor and I2C configuration.</li>
+        </ul>
+    </section>
+
+    <section class="page" id="behavior">
+        <h1>6. Dynamic Behavior</h1>
+        <h2>6.1 Startup sequence</h2>
+        <pre>QGuiApplication
+  → register POSIX signal handlers
+  → construct GPIO/LED, ADC, thermistor, and view model
+  → seed ButtonDebouncer from current Input 1 state
+  → connect 5 ms and 200 ms timers
+  → load Main.qml with ledViewModel initial property
+  → take initial analog sample
+  → start timers and enter Qt event loop</pre>
+
+        <h2>6.2 Physical button sequence</h2>
+        <div class="flow"><div>GPIO 23 high</div><div>30 ms stable</div><div>toggle()</div><div>QML notified</div></div>
+        <p>Raw changes restart the debounce interval. The stable press transition returns true once. Stable release is recorded but returns false, preventing a second toggle.</p>
+
+        <h2>6.3 Analog sample sequence</h2>
+        <pre>QTimer timeout
+  → LedViewModel::sampleAnalogInput()
+  → Ads1015::readVoltage(channel 3)
+  → update voltage and analog status
+  → Thermistor::temperatureFahrenheit(voltage)
+  → update temperature and conversion status
+  → Qt signals refresh QML bindings</pre>
+
+        <h2>6.4 Shutdown sequence</h2>
+        <p>SIGINT, SIGTERM, or SIGHUP sets a signal-safe flag. The next 5 ms timer callback calls <code>application.quit()</code>. After the event loop returns, timers stop and the LED is explicitly turned off. Object destructors then release I2C and GPIO resources.</p>
+    </section>
+
+    <section class="page" id="data">
+        <h1>7. State and Configuration</h1>
+        <h2>7.1 Runtime state</h2>
+        <table>
+            <thead><tr><th>Owner</th><th>State</th><th>Update rule</th></tr></thead>
+            <tbody>
+                <tr><td><code>LedController</code></td><td><code>m_ledOn</code></td><td>Changed after a successful GPIO write; cleared by <code>turnOff()</code>.</td></tr>
+                <tr><td><code>ButtonDebouncer</code></td><td>Raw reading, accepted state, change time</td><td>Updated on every poll according to elapsed steady-clock time.</td></tr>
+                <tr><td><code>LedViewModel</code></td><td>Voltage, temperature, availability flags, error strings</td><td>Updated after each sample attempt.</td></tr>
+                <tr><td><code>Ads1015</code></td><td>File descriptor</td><td>Opened once on first use; retained until destruction.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>7.2 Configuration inputs</h2>
+        <table>
+            <thead><tr><th>Variable</th><th>Default</th><th>Validation</th></tr></thead>
+            <tbody>
+                <tr><td><code>PI_PANEL_I2C_DEVICE</code></td><td class="nowrap"><code>/dev/i2c-1</code></td><td>Validated when opened.</td></tr>
+                <tr><td><code>PI_PANEL_DIVIDER_VOLTS</code></td><td>3.3</td><td>Must parse as positive.</td></tr>
+                <tr><td><code>PI_PANEL_FIXED_RESISTOR_OHMS</code></td><td>10000</td><td>Must parse as positive.</td></tr>
+                <tr><td><code>PI_PANEL_THERMISTOR_NOMINAL_OHMS</code></td><td>10000</td><td>Must parse as positive.</td></tr>
+                <tr><td><code>PI_PANEL_THERMISTOR_NOMINAL_C</code></td><td>25</td><td>Must parse as a number.</td></tr>
+                <tr><td><code>PI_PANEL_THERMISTOR_BETA</code></td><td>3950</td><td>Must parse as positive.</td></tr>
+                <tr><td><code>PI_PANEL_THERMISTOR_TO_GROUND</code></td><td>1</td><td>Exactly <code>0</code> selects the opposite orientation.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>7.3 Persistence</h2>
+        <p>The application has no persistent runtime data. Configuration is supplied at process launch, and measurements exist only in memory. A restart resets LED state, availability state, and sampled values.</p>
+    </section>
+
+    <section class="page" id="quality">
+        <h1>8. Reliability and Quality Attributes</h1>
+        <h2>8.1 Error policy</h2>
+        <table>
+            <thead><tr><th>Failure</th><th>Response</th><th>Impact</th></tr></thead>
+            <tbody>
+                <tr><td>LED command failure</td><td>Emit <code>operationFailed</code>; do not emit state-changed.</td><td>Application remains active.</td></tr>
+                <tr><td>ADC open/read/write/timeout</td><td>Set analog unavailable and expose message.</td><td>LED remains usable; conversion is skipped.</td></tr>
+                <tr><td>Invalid thermistor voltage</td><td>Set temperature unavailable and expose message.</td><td>Raw voltage remains visible.</td></tr>
+                <tr><td>GPIO polling failure</td><td>Log and exit with status 1.</td><td>Application terminates and performs normal cleanup.</td></tr>
+                <tr><td>Invalid startup configuration</td><td>Top-level catch logs and returns 1.</td><td>Application does not start.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>8.2 Timing and responsiveness</h2>
+        <ul>
+            <li>Button poll: 5 ms; accepted press latency is normally 30–35 ms plus event-loop scheduling.</li>
+            <li>Analog update: 200 ms nominal period.</li>
+            <li>ADC wait: bounded at 100 ms, but runs on the UI thread and can temporarily delay rendering.</li>
+        </ul>
+
+        <h2>8.3 Safety and security considerations</h2>
+        <ul>
+            <li>The software is monitoring/control software, not a certified safety system.</li>
+            <li>Hardware voltage limits and Explorer HAT ratings remain external constraints.</li>
+            <li>Device access relies on Linux user/group permissions; the application does not require embedded credentials.</li>
+            <li>Environment input is parsed at startup; malformed numeric values fail closed by preventing startup.</li>
+        </ul>
+    </section>
+
+    <section class="page" id="deployment">
+        <h1>9. Build and Deployment Design</h1>
+        <h2>9.1 Build products</h2>
+        <table>
+            <thead><tr><th>Target</th><th>Contents</th></tr></thead>
+            <tbody>
+                <tr><td><code>pi_panel_core</code></td><td>ADC, debounce, GPIO, LED, and thermistor C++ implementation.</td></tr>
+                <tr><td><code>pi_panel</code></td><td>Qt executable, view model, and embedded QML module.</td></tr>
+                <tr><td><code>pi_panel_tests</code></td><td>GoogleTest executable linked to the core library.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>9.2 Build dependencies</h2>
+        <ul>
+            <li>CMake 3.20 or newer and a C++20 compiler.</li>
+            <li>Qt 6 Core, Gui, Qml, and Quick development packages.</li>
+            <li><code>pkg-config</code> and <code>libgpiodcxx</code>.</li>
+            <li>GoogleTest 1.14 fetched by CMake when configuring tests.</li>
+        </ul>
+
+        <h2>9.3 Runtime environment</h2>
+        <ul>
+            <li><code>/dev/gpiochip0</code> with access to lines 17 and 23.</li>
+            <li><code>/dev/i2c-1</code> or configured replacement, with ADC address <code>0x48</code>.</li>
+            <li>A Qt-supported display. The checked-in profiles use the Pi Xwayland display or PuTTY-forwarded X11.</li>
+        </ul>
+
+        <h2>9.4 Deployment model</h2>
+        <p>The executable is launched interactively from VS Code or a terminal. No systemd unit, installer, update agent, or automatic boot startup is part of the current design.</p>
+    </section>
+
+    <section class="page" id="verification">
+        <h1>10. Verification and Evolution</h1>
+        <h2>10.1 Automated verification</h2>
+        <table>
+            <thead><tr><th>Area</th><th>Verified behavior</th></tr></thead>
+            <tbody>
+                <tr><td>LED controller</td><td>Initial state, toggle transitions, pin values, explicit off, destructor cleanup, button polarity, custom pins.</td></tr>
+                <tr><td>Debouncer</td><td>Stable press, ignored early press, bounce reset, release behavior, repeated cycles.</td></tr>
+                <tr><td>Thermistor</td><td>Nominal midpoint, expected direction for both orientations, range rejection, observed 1.70 V room reading.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>10.2 Current test gaps</h2>
+        <ul>
+            <li>No automated I2C transaction tests for <code>Ads1015</code>.</li>
+            <li>No unit tests for <code>LedViewModel</code> signal and error-state transitions.</li>
+            <li>No automated QML interaction or screenshot tests.</li>
+            <li>No integration test covering real GPIO and ADC hardware together.</li>
+        </ul>
+
+        <h2>10.3 Extension guidance</h2>
+        <ul>
+            <li>Add new hardware behind an interface when practical, preserving testability.</li>
+            <li>Keep physical units explicit in names and contracts.</li>
+            <li>Move blocking I/O off the UI thread if sampling becomes slower or more complex.</li>
+            <li>Add persistent configuration only when runtime environment variables become insufficient.</li>
+            <li>Update Markdown continuously as appropriate, but regenerate this PDF only on explicit request.</li>
+        </ul>
+
+        <div class="callout"><strong>Baseline rule:</strong> This document describes the implementation as of 14 September 2026. Later code changes do not implicitly revise this SDD.</div>
+    </section>
+</body>
+</html>

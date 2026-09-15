@@ -133,17 +133,15 @@ TEST_F(LedControllerTest, DestructorTurnsOffLed)
     EXPECT_EQ(m_mockGpio->getSetCalls().back().value, gpiod::line::value::INACTIVE);
 }
 
-TEST_F(LedControllerTest, IsButtonPressedWhenPulledLow)
+TEST_F(LedControllerTest, IsButtonPressedWhenHigh)
 {
-    // With pull-up, low/INACTIVE means pressed
-    m_mockGpio->setPinValue(m_buttonPin, gpiod::line::value::INACTIVE);
+    m_mockGpio->setPinValue(m_buttonPin, gpiod::line::value::ACTIVE);
     EXPECT_TRUE(m_controller->isButtonPressed());
 }
 
-TEST_F(LedControllerTest, IsButtonPressedWhenHigh)
+TEST_F(LedControllerTest, IsButtonReleasedWhenLow)
 {
-    // High/ACTIVE means unpressed
-    m_mockGpio->setPinValue(m_buttonPin, gpiod::line::value::ACTIVE);
+    m_mockGpio->setPinValue(m_buttonPin, gpiod::line::value::INACTIVE);
     EXPECT_FALSE(m_controller->isButtonPressed());
 }
 
@@ -158,6 +156,6 @@ TEST_F(LedControllerTest, CustomPinsAreUsed)
     ASSERT_EQ(customMock->getSetCalls().size(), 1u);
     EXPECT_EQ(customMock->getSetCalls().back().pin, customLedPin);
 
-    customMock->setPinValue(customButtonPin, gpiod::line::value::INACTIVE);
+    customMock->setPinValue(customButtonPin, gpiod::line::value::ACTIVE);
     EXPECT_TRUE(customController.isButtonPressed());
 }

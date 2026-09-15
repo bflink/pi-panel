@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pi Panel Documentation Guide</title>
+    <style>
+        :root {
+            --ink: #172026;
+            --muted: #52616b;
+            --accent: #006d77;
+            --accent-light: #dff3f2;
+            --rule: #b9c5ca;
+            --code: #f2f5f6;
+        }
+
+        @page {
+            size: A4;
+            margin: 18mm 18mm 20mm;
+
+            @bottom-center {
+                content: "Pi Panel  |  " counter(page);
+                color: #52616b;
+                font: 9pt "DejaVu Sans", sans-serif;
+            }
+        }
+
+        @page :first {
+            margin: 0;
+
+            @bottom-center {
+                content: none;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            color: var(--ink);
+            font: 10.5pt/1.5 "DejaVu Sans", sans-serif;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        h1, h2, h3 {
+            color: #103f45;
+            line-height: 1.2;
+            page-break-after: avoid;
+        }
+
+        h1 {
+            margin: 0 0 8mm;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 3mm;
+            font-size: 24pt;
+        }
+
+        h2 {
+            margin: 8mm 0 3mm;
+            font-size: 16pt;
+        }
+
+        h3 {
+            margin: 6mm 0 2mm;
+            font-size: 12pt;
+        }
+
+        p, li {
+            orphans: 3;
+            widows: 3;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        code {
+            border-radius: 2px;
+            background: var(--code);
+            padding: 0.1em 0.3em;
+            font: 9.5pt "DejaVu Sans Mono", monospace;
+        }
+
+        pre {
+            overflow: hidden;
+            border-left: 4px solid var(--accent);
+            background: var(--code);
+            padding: 4mm;
+            white-space: pre-wrap;
+            font: 9pt/1.45 "DejaVu Sans Mono", monospace;
+            page-break-inside: avoid;
+        }
+
+        table {
+            width: 100%;
+            margin: 4mm 0 6mm;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+        }
+
+        th, td {
+            border-bottom: 1px solid var(--rule);
+            padding: 2.5mm 2mm;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: var(--accent-light);
+            color: #103f45;
+        }
+
+        tr {
+            page-break-inside: avoid;
+        }
+
+        .config-table td:nth-child(2) {
+            white-space: nowrap;
+        }
+
+        .cover {
+            display: flex;
+            width: 210mm;
+            height: 297mm;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #f7fbfa;
+            padding: 34mm 28mm 28mm;
+            page-break-after: always;
+        }
+
+        .cover-mark {
+            width: 24mm;
+            height: 7mm;
+            background: var(--accent);
+        }
+
+        .cover h1 {
+            max-width: 145mm;
+            margin-top: 32mm;
+            border: 0;
+            padding: 0;
+            color: #103f45;
+            font-size: 38pt;
+        }
+
+        .cover .subtitle {
+            max-width: 135mm;
+            color: var(--muted);
+            font-size: 17pt;
+        }
+
+        .cover .meta {
+            border-top: 1px solid var(--rule);
+            padding-top: 7mm;
+            color: var(--muted);
+        }
+
+        .page {
+            page-break-before: always;
+        }
+
+        .toc ol {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            counter-reset: toc;
+        }
+
+        .toc li {
+            display: flex;
+            border-bottom: 1px dotted var(--rule);
+            padding: 2.5mm 0;
+            counter-increment: toc;
+        }
+
+        .toc li a {
+            flex: 1;
+        }
+
+        .toc .page-number {
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .toc li::before {
+            content: counter(toc, decimal-leading-zero);
+            width: 12mm;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .callout {
+            margin: 5mm 0;
+            border: 1px solid #88b7b4;
+            border-left-width: 5px;
+            background: var(--accent-light);
+            padding: 4mm 5mm;
+            page-break-inside: avoid;
+        }
+
+        .flow {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 3mm;
+            margin: 6mm 0;
+            page-break-inside: avoid;
+        }
+
+        .flow div {
+            position: relative;
+            border: 1px solid #88b7b4;
+            background: #f7fbfa;
+            padding: 4mm 2mm;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .flow div:not(:last-child)::after {
+            content: "→";
+            position: absolute;
+            right: -4mm;
+            color: var(--accent);
+        }
+
+        .formula {
+            margin: 4mm 0;
+            text-align: center;
+            font-family: "DejaVu Serif", serif;
+            font-size: 13pt;
+            page-break-inside: avoid;
+        }
+
+        .checklist li {
+            margin-bottom: 2mm;
+        }
+
+        .small {
+            color: var(--muted);
+            font-size: 9pt;
+        }
+
+        @media screen {
+            body {
+                max-width: 210mm;
+                margin: 0 auto;
+                background: #dce3e5;
+            }
+
+            .page, .toc {
+                min-height: 297mm;
+                background: white;
+                padding: 18mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <section class="cover">
+        <div>
+            <div class="cover-mark"></div>
+            <h1>Pi Panel Documentation Guide</h1>
+            <p class="subtitle">Raspberry Pi 5, Pimoroni Explorer HAT Pro, GPIO LED control, and thermistor temperature measurement</p>
+        </div>
+        <div class="meta">
+            <strong>Project:</strong> pi-panel<br>
+            <strong>Platform:</strong> Raspberry Pi 5 / Qt 6 / C++20<br>
+            <strong>Updated:</strong> September 2026
+        </div>
+    </section>
+
+    <section class="toc page" id="contents">
+        <h1>Table of Contents</h1>
+        <ol>
+            <li><a href="#overview">System overview</a><span class="page-number">3</span></li>
+            <li><a href="#build">Build, test, and launch</a><span class="page-number">4</span></li>
+            <li><a href="#led">LED control</a><span class="page-number">5</span></li>
+            <li><a href="#button">Explorer HAT button input</a><span class="page-number">6</span></li>
+            <li><a href="#thermistor">Thermistor measurement</a><span class="page-number">7</span></li>
+            <li><a href="#calibration">Temperature calibration</a><span class="page-number">8</span></li>
+            <li><a href="#errors">Error handling and troubleshooting</a><span class="page-number">9</span></li>
+            <li><a href="#reference">Configuration reference</a><span class="page-number">10</span></li>
+        </ol>
+        <div class="callout">
+            This guide describes the checked-in implementation. The Markdown files in the <code>documentation</code> folder remain the editable feature references.
+        </div>
+    </section>
+
+    <section class="page" id="overview">
+        <h1>1. System Overview</h1>
+        <p>Pi Panel is a Qt Quick application that controls Raspberry Pi GPIO and reads an analog thermistor through a Pimoroni Explorer HAT Pro. C++ owns hardware access and application state; QML renders the window.</p>
+
+        <h2>Primary components</h2>
+        <table>
+            <thead><tr><th>Component</th><th>Responsibility</th></tr></thead>
+            <tbody>
+                <tr><td><code>main.cpp</code></td><td>Creates services, the view model, signal handling, and polling timers.</td></tr>
+                <tr><td><code>GpiodService</code></td><td>Requests and accesses GPIO lines through <code>libgpiod</code>.</td></tr>
+                <tr><td><code>LedController</code></td><td>Tracks LED state and interprets the button input.</td></tr>
+                <tr><td><code>Ads1015</code></td><td>Reads Explorer HAT analog channels over Linux I2C.</td></tr>
+                <tr><td><code>Thermistor</code></td><td>Converts divider voltage into degrees Fahrenheit.</td></tr>
+                <tr><td><code>LedViewModel</code></td><td>Exposes LED, voltage, temperature, and error properties to QML.</td></tr>
+                <tr><td><code>Main.qml</code></td><td>Displays controls, measurements, and errors.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Runtime paths</h2>
+        <div class="flow">
+            <div>QML button</div><div>LedViewModel</div><div>LedController</div><div>GPIO 17</div>
+        </div>
+        <div class="flow">
+            <div>Input 1</div><div>30 ms debounce</div><div>LedViewModel</div><div>GPIO 17</div>
+        </div>
+        <div class="flow">
+            <div>Analog 1</div><div>ADS1015</div><div>Thermistor</div><div>QML display</div>
+        </div>
+
+        <p>The GPIO timer runs every 5 ms. It checks shutdown requests, samples Explorer HAT Input 1, and sends stable presses through the view model. A separate 200 ms timer samples voltage and temperature.</p>
+    </section>
+
+    <section class="page" id="build">
+        <h1>2. Build, Test, and Launch</h1>
+        <h2>Build and test</h2>
+        <pre>cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --config Debug
+ctest --test-dir build --output-on-failure</pre>
+
+        <h2>VS Code debug profiles</h2>
+        <table>
+            <thead><tr><th>Profile</th><th>Destination</th><th>Requirements</th></tr></thead>
+            <tbody>
+                <tr><td>Debug pi_panel on Pi desktop</td><td>Pi monitor at <code>DISPLAY=:0</code></td><td>Graphical desktop logged in as <code>bill</code>.</td></tr>
+                <tr><td>Debug pi_panel over forwarded X11</td><td>Windows through XLaunch</td><td>XLaunch and a connected PuTTY session with X11 forwarding.</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Pi desktop</h3>
+        <ol class="checklist">
+            <li>Log in to the Pi graphical desktop as <code>bill</code>.</li>
+            <li>Connect VS Code to the Pi and open the project.</li>
+            <li>Select <strong>Debug pi_panel on Pi desktop</strong>.</li>
+            <li>Press F5. The build task runs and the window opens on the Pi.</li>
+        </ol>
+
+        <h3>Forwarded X11</h3>
+        <ol class="checklist">
+            <li>Start XLaunch on Windows.</li>
+            <li>Connect through PuTTY with X11 forwarding enabled.</li>
+            <li>Run <code>echo $DISPLAY</code> in PuTTY.</li>
+            <li>Make the forwarded profile's <code>DISPLAY</code> value match, select that profile, and press F5 twice if it pauses at entry.</li>
+        </ol>
+
+        <div class="callout"><strong>Resource ownership:</strong> Stop any existing Pi Panel process before starting another instance. GPIO lines can only be requested by one process at a time.</div>
+    </section>
+
+    <section class="page" id="led">
+        <h1>3. LED Control</h1>
+        <h2>Hardware mapping</h2>
+        <p>The default LED is BCM GPIO 17, which is LED 2 on the Explorer HAT Pro. <code>GpiodService</code> requests it as an output on <code>/dev/gpiochip0</code> and initializes it inactive.</p>
+
+        <h2>Software flow</h2>
+        <ol>
+            <li>The user presses <strong>Toggle LED</strong> or the debounced physical button fires.</li>
+            <li><code>LedViewModel::toggle()</code> calls <code>LedController::toggle()</code>.</li>
+            <li>The controller writes <code>ACTIVE</code> or <code>INACTIVE</code> through <code>IGpioService</code>.</li>
+            <li>The controller updates its stored state.</li>
+            <li>The view model emits <code>ledOnChanged</code>.</li>
+            <li>QML updates the indicator and label.</li>
+        </ol>
+
+        <h2>Shutdown behavior</h2>
+        <p>Normal application exit calls <code>turnOff()</code>. The controller destructor also attempts to turn the LED off while suppressing hardware exceptions. A forced process termination can bypass normal cleanup, so shutdown behavior must not be treated as a hardware safety mechanism.</p>
+    </section>
+
+    <section class="page" id="button">
+        <h1>4. Explorer HAT Button Input</h1>
+        <p>Explorer HAT Input 1 maps to BCM GPIO 23. The HAT input passes through an onboard buffer, so Raspberry Pi internal pull resistors cannot bias the external terminal. The application requests the line as an input with no internal bias and interprets high as pressed.</p>
+
+        <h2>Recommended wiring</h2>
+        <pre>3.3 V or 5 V ---- push button ---- Input 1
+                                   |
+                                 10 kΩ
+                                   |
+                                  GND</pre>
+
+        <div class="callout"><strong>Do not leave Input 1 floating.</strong> The external 10 kΩ pull-down holds the input low while released. Pressing the button drives it high. Explorer HAT digital inputs are 5 V tolerant.</div>
+
+        <h2>Debouncing</h2>
+        <p>The application samples the button every 5 ms. <code>ButtonDebouncer</code> requires a new reading to remain stable for 30 ms. A stable press toggles once; release updates the accepted state but does not toggle.</p>
+    </section>
+
+    <section class="page" id="thermistor">
+        <h1>5. Thermistor Measurement</h1>
+        <h2>Voltage divider</h2>
+        <pre>3.3 V
+  |
+  +-- 10 kΩ fixed resistor
+  |
+  +-- Explorer HAT Pro Analog 1
+  |
+  +-- 10 kΩ NTC thermistor
+  |
+ GND</pre>
+
+        <p>The Explorer HAT Pro ADS1015 uses I2C address <code>0x48</code>. Pimoroni maps Analog 1 to ADC channel 3. At the thermistor's nominal 25°C point, both resistances are about 10 kΩ and the voltage is about half of 3.3 V, or 1.65 V.</p>
+
+        <h2>ADC acquisition</h2>
+        <ol>
+            <li>Open <code>/dev/i2c-1</code> and select address <code>0x48</code>.</li>
+            <li>Configure a single-ended, single-shot conversion on channel 3.</li>
+            <li>Use the 6.144 V full-scale range.</li>
+            <li>Wait up to 100 ms for completion.</li>
+            <li>Decode ADS1015 12-bit or ADS1115 16-bit data.</li>
+        </ol>
+
+        <h2>Resistance</h2>
+        <p>For the default arrangement, where the thermistor is connected to ground:</p>
+        <div class="formula">R<sub>T</sub> = R<sub>F</sub> × V<sub>O</sub> / (V<sub>S</sub> − V<sub>O</sub>)</div>
+        <p>If the thermistor is connected to the supply instead:</p>
+        <div class="formula">R<sub>T</sub> = R<sub>F</sub> × (V<sub>S</sub> − V<sub>O</sub>) / V<sub>O</sub></div>
+    </section>
+
+    <section class="page" id="calibration">
+        <h1>6. Temperature Calibration</h1>
+        <h2>Beta equation</h2>
+        <div class="formula">1 / T = 1 / T<sub>0</sub> + [ln(R<sub>T</sub> / R<sub>0</sub>) / β]</div>
+        <p>Temperatures in the beta equation are kelvin. The calculated value is converted to Fahrenheit:</p>
+        <div class="formula">T<sub>F</sub> = (T<sub>K</sub> − 273.15) × 9 / 5 + 32</div>
+
+        <h2>Current defaults</h2>
+        <table>
+            <thead><tr><th>Setting</th><th>Default</th></tr></thead>
+            <tbody>
+                <tr><td>Divider supply</td><td>3.3 V</td></tr>
+                <tr><td>Fixed resistor</td><td>10 kΩ</td></tr>
+                <tr><td>Nominal thermistor resistance</td><td>10 kΩ</td></tr>
+                <tr><td>Nominal temperature</td><td>25°C</td></tr>
+                <tr><td>Beta</td><td>3950 K</td></tr>
+                <tr><td>Thermistor position</td><td>Analog 1 to ground</td></tr>
+            </tbody>
+        </table>
+
+        <p>With these defaults, 1.65 V maps to 77.0°F and 1.70 V maps to approximately 74.6°F.</p>
+
+        <h2>Improving accuracy</h2>
+        <ul>
+            <li>Measure the actual divider supply voltage.</li>
+            <li>Measure the fixed resistor rather than relying only on its marked tolerance.</li>
+            <li>Use the thermistor datasheet's nominal resistance and beta value.</li>
+            <li>For a broad temperature range, consider thermistor-specific Steinhart-Hart coefficients.</li>
+        </ul>
+    </section>
+
+    <section class="page" id="errors">
+        <h1>7. Error Handling and Troubleshooting</h1>
+        <table>
+            <thead><tr><th>Symptom</th><th>Check</th></tr></thead>
+            <tbody>
+                <tr><td>GPIO line is busy</td><td>Close any other Pi Panel instance.</td></tr>
+                <tr><td>Analog 1 unavailable</td><td>Confirm <code>/dev/i2c-1</code>, group access, and address <code>0x48</code> with <code>i2cdetect -y 1</code>.</td></tr>
+                <tr><td>Temperature unavailable</td><td>Check that voltage is strictly between 0 V and the configured divider supply.</td></tr>
+                <tr><td>Temperature is inaccurate</td><td>Verify supply, resistor, beta, nominal resistance, and divider orientation.</td></tr>
+                <tr><td>Button triggers unpredictably</td><td>Confirm Input 1 has an external pull-down and is not floating.</td></tr>
+                <tr><td>Pi desktop window does not open</td><td>Confirm the graphical desktop is logged in as <code>bill</code> and use the local debug profile.</td></tr>
+                <tr><td>Forwarded window does not open</td><td>Start XLaunch, connect PuTTY with forwarding, and match <code>DISPLAY</code>.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Failure policy</h2>
+        <p>ADC and conversion errors are exposed in the window without stopping LED control. GPIO polling errors are caught in the timer callback and exit the application. Normal exit turns the LED off.</p>
+    </section>
+
+    <section class="page" id="reference">
+        <h1>8. Configuration Reference</h1>
+        <table class="config-table">
+            <thead><tr><th>Environment variable</th><th>Default</th><th>Purpose</th></tr></thead>
+            <tbody>
+                <tr><td><code>PI_PANEL_I2C_DEVICE</code></td><td><code>/dev/i2c-1</code></td><td>Linux I2C device path.</td></tr>
+                <tr><td><code>PI_PANEL_DIVIDER_VOLTS</code></td><td><code>3.3</code></td><td>Divider supply voltage.</td></tr>
+                <tr><td><code>PI_PANEL_FIXED_RESISTOR_OHMS</code></td><td><code>10000</code></td><td>Fixed resistor value.</td></tr>
+                <tr><td><code>PI_PANEL_THERMISTOR_NOMINAL_OHMS</code></td><td><code>10000</code></td><td>Resistance at nominal temperature.</td></tr>
+                <tr><td><code>PI_PANEL_THERMISTOR_NOMINAL_C</code></td><td><code>25</code></td><td>Nominal temperature in Celsius.</td></tr>
+                <tr><td><code>PI_PANEL_THERMISTOR_BETA</code></td><td><code>3950</code></td><td>Beta value in kelvin.</td></tr>
+                <tr><td><code>PI_PANEL_THERMISTOR_TO_GROUND</code></td><td><code>1</code></td><td>Set to <code>0</code> when the thermistor is connected to the supply.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Hardware constants</h2>
+        <table>
+            <thead><tr><th>Function</th><th>Mapping</th></tr></thead>
+            <tbody>
+                <tr><td>LED</td><td>Explorer HAT LED 2 / BCM GPIO 17</td></tr>
+                <tr><td>Button</td><td>Explorer HAT Input 1 / BCM GPIO 23 / active-high</td></tr>
+                <tr><td>Thermistor voltage</td><td>Explorer HAT Analog 1 / ADS1015 channel 3</td></tr>
+                <tr><td>ADC</td><td>I2C address <code>0x48</code>, 6.144 V full-scale</td></tr>
+                <tr><td>GPIO chip</td><td><code>/dev/gpiochip0</code></td></tr>
+            </tbody>
+        </table>
+
+        <p class="small">Source references: <code>Controllers/</code>, <code>ViewModels/</code>, <code>Main.qml</code>, <code>main.cpp</code>, and <code>tests/</code>.</p>
+    </section>
+</body>
+</html>

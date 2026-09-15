@@ -2,12 +2,12 @@
 
 ## Hardware mapping
 
-The default LED is Raspberry Pi BCM GPIO 17. This corresponds to LED 2 on the Explorer HAT Pro. `LedController` also configures BCM GPIO 23 as a button input by default.
+The default LED is Raspberry Pi BCM GPIO 17. This corresponds to LED 2 on the Explorer HAT Pro. `LedController` configures BCM GPIO 23, Explorer HAT Input 1, as the button input.
 
 `GpiodService` requests both lines from `/dev/gpiochip0`:
 
 - The LED line is an output and starts inactive.
-- The button line is an input configured with a pull-up bias.
+- The button line is an input with no Raspberry Pi bias configured.
 
 The chip path and GPIO numbers are constructor parameters, so tests or future hardware configurations can supply different values.
 
@@ -30,9 +30,23 @@ The `IGpioService` interface separates LED behavior from Linux GPIO access. Unit
 
 Stopping the process forcibly can bypass normal cleanup, so the LED should not rely on application shutdown as a safety mechanism.
 
-## Physical button status
+## Physical button
 
-`LedController::isButtonPressed()` treats an inactive GPIO value as pressed because the input uses pull-up logic. `ButtonDebouncer` and a 5 ms polling timer are created in `main.cpp`, but the block that reads the button and toggles the LED is currently commented out. As a result, only the QML button controls the LED in the current build.
+Explorer HAT digital inputs pass through an onboard buffer, so the Raspberry Pi's internal pull-up or pull-down cannot bias the external terminal. Input 1 must be held low externally while the button is released and driven high while it is pressed.
+
+A typical connection is:
+
+```text
+3.3 V or 5 V ---- push button ---- Input 1
+																	 |
+																 10 kΩ
+																	 |
+																	GND
+```
+
+The Explorer HAT input is 5 V tolerant. Do not leave Input 1 floating, because an unconnected buffered input can produce unpredictable presses.
+
+`LedController::isButtonPressed()` therefore treats an active/high GPIO value as pressed. `main.cpp` polls it every 5 ms and `ButtonDebouncer` requires a stable state for 30 ms. A stable transition to pressed calls `LedViewModel::toggle()`, which keeps the physical LED and QML indicator synchronized. Releasing the button does not toggle the LED again.
 
 ## Relevant files
 

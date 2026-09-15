@@ -44,7 +44,7 @@ bool LedController::isButtonPressed() const
     {
         return false;
     }
-    return m_gpioService->getLineValue(m_buttonPin) == gpiod::line::value::INACTIVE;
+    return m_gpioService->getLineValue(m_buttonPin) == gpiod::line::value::ACTIVE;
 }
 
 void LedController::turnOff()

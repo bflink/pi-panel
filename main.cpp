@@ -115,29 +115,27 @@ int main(int argc, char* argv[])
                     return;
                 }
 
-                // Handle errors here so exceptions don't escape
-                // through Qt's event-dispatch code.
-                // try
-                // {
-                //     const bool pressed =
-                //         ledController.isButtonPressed();
+                try
+                {
+                    const bool pressed =
+                        ledController.isButtonPressed();
 
-                //     if (buttonDebouncer.update(pressed, Clock::now()))
-                //     {
-                //         ledViewModel.toggle();
+                    if (buttonDebouncer.update(pressed, Clock::now()))
+                    {
+                        ledViewModel.toggle();
 
-                //         std::cout << "LED: "
-                //                   << (ledController.isOn() ? "ON" : "OFF")
-                //                   << '\n';
-                //     }
-                // }
-                // catch (const std::exception &error)
-                // {
-                //     std::cerr << "GPIO error: "
-                //               << error.what() << '\n';
+                        std::cout << "LED: "
+                                  << (ledController.isOn() ? "ON" : "OFF")
+                                  << '\n';
+                    }
+                }
+                catch (const std::exception& error)
+                {
+                    std::cerr << "GPIO error: "
+                              << error.what() << '\n';
 
-                //     application.exit(1);
-                // }
+                    application.exit(1);
+                }
             });
 
         QObject::connect(

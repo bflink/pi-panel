@@ -1,6 +1,6 @@
 # Pi Panel — Run and Debug Cheat Sheet
 
-Implementation documentation is available in [`documentation/README.md`](documentation/README.md), with separate guides for the [LED](documentation/led.md) and [thermistor](documentation/thermistor.md).
+The printable [Pi Panel Documentation Guide](documentation/pi-panel-guide.pdf) covers setup and operation. The separate [Software Design Description](documentation/pi-panel-sdd.pdf) records the software architecture and design baseline. Both PDFs are refreshed only when explicitly requested. Editable references are available in [`documentation/README.md`](documentation/README.md), with separate guides for the [LED](documentation/led.md) and [thermistor](documentation/thermistor.md).
 
 Bill’s current setup: C++ / Qt Quick application on the Pi, edited and debugged from VS Code on Windows. The default debug configuration displays the application on the Pi desktop and does not require PuTTY or XLaunch. A separate forwarded-X11 configuration remains available when displaying the window on Windows is useful.
 
@@ -38,40 +38,16 @@ Changes to forwarding require a new PuTTY connection. Password login works for t
 
 ## VS Code launch.json
 
-Use this in the Pi project’s `.vscode/launch.json`. Replace `localhost:10.0` with the value reported by your current PuTTY session.
+The checked-in `.vscode/launch.json` contains two profiles:
 
-```json
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Debug pi_panel",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/pi_panel",
-            "args": [],
-            "stopAtEntry": true,
-            "cwd": "${workspaceFolder}",
-            "environment": [
-                { "name": "DISPLAY", "value": "localhost:10.0" },
-                { "name": "XDG_RUNTIME_DIR", "value": "/run/user/1000" },
-                { "name": "QT_QPA_PLATFORM", "value": "xcb" },
-                { "name": "QT_QUICK_BACKEND", "value": "software" }
-            ],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "preLaunchTask": "CMake: build pi_panel (Debug)"
-        }
-    ]
-}
-```
+| Profile | Display | Requirements |
+|---|---|---|
+| **Debug pi_panel on Pi desktop** | Pi monitor through Xwayland at `:0` | Pi graphical desktop logged in as `bill` |
+| **Debug pi_panel over forwarded X11** | Windows through XLaunch | XLaunch running and a connected PuTTY session with X11 forwarding |
 
-- **`environment` belongs inside the configuration**, replacing its empty array—not at the file’s top level.
-- **Ctrl+Shift+D** opens Run and Debug. Select **Debug pi_panel** beside the green play button.
-- Set `stopAtEntry` to `false` if you don’t want the initial pause.
-- `preLaunchTask` refers to your existing build task; keep its name matched to that task.
-- `QT_QUICK_BACKEND=software` avoids depending on forwarded OpenGL for this simple QML window.
+The local profile uses `/home/bill/.Xauthority` and starts immediately. The forwarded profile pauses at program entry and uses `DISPLAY=:10.0`; update that value if `echo $DISPLAY` in PuTTY reports a different display number.
+
+Both profiles invoke **CMake: build pi_panel (Debug)** before launching.
 
 ## Build and run tests
 
@@ -130,7 +106,7 @@ PI_PANEL_THERMISTOR_BETA=3950 \
 
 If the thermistor is connected to the supply and the fixed resistor is connected to ground, also set `PI_PANEL_THERMISTOR_TO_GROUND=0`.
 
-The Raspberry Pi header I2C interface must be enabled. On this Pi, `/dev/i2c-1` is currently absent and `raspi-config nonint get_i2c` reports that the interface is disabled. Run this yourself in a terminal, then reboot:
+The Raspberry Pi header I2C interface must be enabled. If `/dev/i2c-1` is absent on a new setup, enable the interface and reboot:
 
 ```bash
 sudo raspi-config nonint do_i2c 0
@@ -166,10 +142,10 @@ The application remains usable when the ADC cannot be read and displays the I2C 
 | `could not connect to display` with no address | `DISPLAY` is probably empty. Check the environment inside the selected debug configuration, or supply it explicitly for a terminal run. |
 | Cannot connect to `localhost:10.0` | Confirm XLaunch is running, PuTTY is still connected, and its current `echo $DISPLAY` matches your configuration. Use the same Pi user in PuTTY and VS Code. |
 | PuTTY prints an empty `DISPLAY` | Enable X11 forwarding in PuTTY’s saved session and reconnect. Don’t invent a display value. |
-| Runs in PuTTY but fails with F5 | Check the selected configuration and the placement/value of its `environment` array. |
+| Runs in PuTTY but forwarded F5 fails | Confirm **Debug pi_panel over forwarded X11** is selected and its `DISPLAY` matches `echo $DISPLAY` in PuTTY. |
 | Authorization error | First test from PuTTY. Capture the exact error; matching the display number alone doesn’t repair an X11 authentication problem. |
 | Window appears in RealVNC instead of Windows | `DISPLAY=:0` targets the Pi’s desktop. Use PuTTY’s forwarded display for XLaunch. |
-| Program pauses before opening a window | With `stopAtEntry: true`, press F5 again. |
+| Forwarded profile pauses before opening a window | It uses `stopAtEntry: true`; press F5 again to continue. |
 | GPIO reports busy / already requested | Close the other application instance before starting another. |
 | `libxcb-cursor0` dependency message | We used `sudo apt install libxcb-cursor0`. If the app works in PuTTY, check display settings first; that message can accompany a display connection failure. |
 
@@ -187,6 +163,7 @@ DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/1000 QT_QPA_PLATFORM=xcb ./build/pi_panel
 ## Current application behavior
 
 - The QML button toggles the real LED and updates the onscreen indicator through `LedViewModel`.
+- A button on Explorer HAT Input 1 toggles the LED after a 30 ms debounce interval.
 - Explorer HAT Pro Analog 1 is sampled every 200 ms and displayed in volts and degrees Fahrenheit.
 - ADC connection errors are displayed in the window without stopping LED control.
 
