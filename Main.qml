@@ -11,6 +11,25 @@ ApplicationWindow {
 
     required property QtObject ledViewModel
     required property QtObject telemetryViewModel
+    required property QtObject performanceViewModel
+
+    footer: Rectangle {
+        objectName: "performanceStatusBar"
+        color: "#e5ebef"
+        implicitHeight: metrics.implicitHeight + 12
+        Flow {
+            id: metrics
+            x: 10; y: 6
+            width: parent.width - 20
+            spacing: 12
+            function value(number, digits) { return number >= 0 ? number.toFixed(digits) : "—" }
+            Label { font.pixelSize: 11; text: "App CPU " + metrics.value(window.performanceViewModel.cpuPercent, 1) + "%" }
+            Label { font.pixelSize: 11; text: "RAM " + metrics.value(window.performanceViewModel.memoryMiB, 1) + " MiB" }
+            Label { font.pixelSize: 11; text: "CPU temp " + metrics.value(window.performanceViewModel.temperatureCelsius, 1) + " °C" }
+            Label { font.pixelSize: 11; text: "UI " + metrics.value(window.performanceViewModel.framesPerSecond, 0) + " fps" }
+            Label { font.pixelSize: 11; text: "Rx " + metrics.value(window.performanceViewModel.samplesPerSecond, 0) + " samples/s" }
+        }
+    }
 
     header: TabBar {
         id: tabs

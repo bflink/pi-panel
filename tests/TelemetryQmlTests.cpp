@@ -1,4 +1,5 @@
 #include "ViewModels/TelemetryViewModel.h"
+#include "ViewModels/PerformanceViewModel.h"
 #include <grpcpp/grpcpp.h>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -92,12 +93,14 @@ int main(int argc, char** argv)
     {
         LedMock led;
         TelemetryViewModel telemetry;
+        PerformanceViewModel performance(telemetry);
         QQmlApplicationEngine engine;
         bool qmlWarning = false;
         QObject::connect(&engine, &QQmlEngine::warnings, &app,
                          [&](const QList<QQmlError>&) { qmlWarning = true; });
         engine.setInitialProperties({{QStringLiteral("ledViewModel"), QVariant::fromValue(&led)},
-            {QStringLiteral("telemetryViewModel"), QVariant::fromValue(&telemetry)}});
+            {QStringLiteral("telemetryViewModel"), QVariant::fromValue(&telemetry)},
+            {QStringLiteral("performanceViewModel"), QVariant::fromValue(&performance)}});
         engine.load(QUrl::fromLocalFile(QStringLiteral(PI_PANEL_SOURCE_DIR "/Main.qml")));
         if (!engine.rootObjects().isEmpty())
         {
@@ -105,6 +108,7 @@ int main(int argc, char** argv)
             auto* tabs = engine.rootObjects().first()->findChild<QObject*>(QStringLiteral("telemetryTabs"));
             if (window && tabs)
             {
+                performance.attachWindow(window);
                 tabs->setProperty("currentIndex", 1);
                 window->resize(480, 960);
                 telemetry.connectToServer(QStringLiteral("127.0.0.1:%1").arg(port));
@@ -122,14 +126,24 @@ int main(int argc, char** argv)
                     const bool ready = telemetry.temperatureAvailable() && telemetry.pressureAvailable() &&
                         telemetry.waveformAvailable() && telemetry.waveformPoints().size() > 5 &&
                         telemetry.trendChannels().size() == 8 &&
-                        telemetry.trendChannels()[0].toMap()["points"].toList().size() > 5 && selectionWorks;
+                        telemetry.trendChannels()[0].toMap()["points"].toList().size() > 5 && selectionWorks &&
+                        performance.cpuPercent() >= 0 && performance.memoryMiB() > 0 &&
+                        performance.samplesPerSecond() > 0;
                     const bool captured = argc <= 1 ||
                         window->grabWindow().save(QString::fromLocal8Bit(argv[1]));
                     telemetry.disconnectFromServer();
                     const bool cleared = !telemetry.running() && !telemetry.temperatureAvailable() &&
                         telemetry.waveformPoints().isEmpty();
                     result = ready && cleared && !qmlWarning && captured ? 0 : 1;
-                    app.quit();
+                    tabs->setProperty("currentIndex", 0);
+                    // Metrics remain live on the hardware tab with no network traffic.
+                    QTimer::singleShot(2200, &app, [&] {
+                        auto* bar = window->findChild<QObject*>(QStringLiteral("performanceStatusBar"));
+                        if (!bar || !bar->property("visible").toBool() ||
+                            performance.samplesPerSecond() != 0 || performance.memoryMiB() <= 0 || qmlWarning)
+                            result = 1;
+                        app.quit();
+                    });
                 });
                 app.exec();
             }

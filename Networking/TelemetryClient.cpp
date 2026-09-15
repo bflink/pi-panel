@@ -89,6 +89,12 @@ void TelemetryClient::clearMonitor()
     }
 }
 
+std::uint64_t TelemetryClient::receivedSamples() const
+{
+    std::lock_guard lock(mutex_);
+    return receivedSamples_;
+}
+
 bool TelemetryClient::recordMonitor(const wire::MonitorFrame& frame)
 {
     if (!frame.has_metadata() || !std::isfinite(frame.metadata().elapsed_seconds())) return false;
@@ -117,6 +123,7 @@ bool TelemetryClient::recordMonitor(const wire::MonitorFrame& frame)
     for (const auto& value : frame.values()) {
         const auto i = static_cast<std::size_t>(value.type() - 1);
         if (!active[i]) continue;
+        ++receivedSamples_;
         auto& reading = parameters_[i];
         reading.available = true;
         reading.value = value.value();
@@ -143,6 +150,7 @@ bool TelemetryClient::record(Stream stream, double value, const wire::SampleMeta
     reading.connected = true;
     reading.available = true;
     reading.value = value;
+    ++receivedSamples_;
     reading.sequence = metadata.sequence();
     reading.status = "Connected";
     lastActivity_[stream] = std::chrono::steady_clock::now();

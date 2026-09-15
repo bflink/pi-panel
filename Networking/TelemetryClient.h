@@ -48,6 +48,7 @@ public:
     TelemetryClient(const TelemetryClient&) = delete;
     TelemetryClient& operator=(const TelemetryClient&) = delete;
     Snapshot snapshot() const;
+    std::uint64_t receivedSamples() const;
     // Call from the owning thread. Cancels reads, wakes retries, then joins workers.
     void stop();
 
@@ -71,6 +72,7 @@ private:
     std::array<Reading, 8> parameters_;
     std::array<std::deque<Point>, 8> trends_;
     std::uint64_t revision_ = 0;
+    std::uint64_t receivedSamples_ = 0;
     std::array<std::thread, StreamCount> workers_;
     std::thread watchdog_;
 };

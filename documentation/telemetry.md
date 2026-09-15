@@ -1,5 +1,30 @@
 # Windows gRPC telemetry client
 
+## Performance status bar
+
+The footer stays visible on both tabs and updates once per second:
+
+- **App CPU:** CPU time consumed by all app threads divided by elapsed time.
+  100% is one full core; a multithreaded app can exceed 100%.
+- **RAM:** resident process memory (VmRSS from /proc/self/status), in MiB.
+- **CPU temp:** Raspberry Pi CPU thermal-zone temperature; a dash means the
+  sensor is absent or unreadable. No elevated permissions or extra package needed.
+- **UI:** actual window frames presented per second, using Qt frameSwapped.
+  Qt renders on demand: an idle or hidden window has a low/zero rate. The
+  status bar itself can cause about one frame per second; this is not a refresh
+  rate benchmark or the waveform sample rate.
+- **Rx:** received data samples per second across all subscriptions, counting
+  each monitor parameter separately. Status-only and inactive waveform
+  heartbeats are excluded. The rate settles to zero after disconnection.
+
+Rates use measured elapsed time, so a delayed UI timer does not inflate them.
+Counters survive client reconnects. A render-thread atomic counts frames; the
+GUI timer reads counters and a few local kernel files without polling hardware
+commands or forcing extra frame rendering.
+
+Reference interfaces: [Qt frameSwapped](https://doc.qt.io/qt-6/qquickwindow.html#frameSwapped)
+and [Linux thermal sysfs](https://docs.kernel.org/5.10/driver-api/thermal/sysfs-api.html).
+
 ## PSC and STO2 simulator
 
 Run the updated Windows server and use its console menu:

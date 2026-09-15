@@ -38,6 +38,8 @@ public:
     double waveformVolts() const { return reading(TelemetryClient::Waveform).value; }
     QVariantList waveformPoints() const { return waveformPoints_; }
     QVariantList trendChannels() const { return trendChannels_; }
+    std::uint64_t receivedSamples() const
+    { return completedSamples_ + (client_ ? client_->receivedSamples() : 0); }
     Q_INVOKABLE void connectToServer(const QString& address);
     Q_INVOKABLE void disconnectFromServer();
 signals:
@@ -57,4 +59,5 @@ private:
     QVariantList waveformPoints_;
     QVariantList trendChannels_;
     QTimer refreshTimer_;
+    std::uint64_t completedSamples_ = 0;
 };
