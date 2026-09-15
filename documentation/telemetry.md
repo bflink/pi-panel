@@ -1,5 +1,36 @@
 # Windows gRPC telemetry client
 
+## PSC and STO2 simulator
+
+Run the updated Windows server and use its console menu:
+
+| Key | Connection |
+| --- | --- |
+| 1 | Toggle PSC cable (removing it also removes the sensor) |
+| 2 | Toggle PSC sensor; cable must already be connected |
+| 3 / 4 | Toggle STO2 A1 / A2 independently |
+| 5 / 6 | Toggle STO2 B1 / B2 independently |
+| M / Q | Show menu / quit |
+
+All connections start disconnected. The PSC cable and sensor together enable
+the 100 Hz waveform and CO (L/min), SV (mL), SVV (%), HR (beats/min).
+PSC parameters have an initial sample and update every 20 seconds. Each STO2
+channel has an initial sample and updates every 2 seconds while connected.
+These are synthetic demonstration signals, not measurements.
+
+Below the waveform, two independent drop-down selectors offer the eight new
+parameters and Off. Each selected trend shows its latest value, units,
+connection status and up to ten minutes of history. Scroll down on a small
+display. Histories are bounded to 301 points each and cleared on channel or
+network disconnection. Selecting a different trend uses history already
+collected during the current connection; no additional subscription is needed.
+
+The new StreamMonitor RPC multiplexes parameter values and connection states.
+Status-only heartbeats arrive every second, so the 20-second sampling interval
+does not trigger the network watchdog or add duplicate trend points.
+Inactive waveform frames are status heartbeats and never plotted as zero volts.
+Update both repositories and rebuild to generate the matching protobuf bindings.
+
 The **Windows telemetry** tab subscribes to the C++ simulator in
 [bflink/GrpcServerApp](https://github.com/bflink/GrpcServerApp). The Explorer HAT
 tab retains the real LED, analog voltage and thermistor controls.
@@ -100,9 +131,10 @@ launch commands.
 | Component | Responsibility |
 | --- | --- |
 | `proto/telemetry.proto` | Exact shared server contract, package `pi.telemetry.v1` |
-| `Networking/TelemetryClient` | Three independent blocking-read workers, retry, watchdog, bounded buffer |
+| `Networking/TelemetryClient` | Four independent blocking-read workers, retry, watchdog, bounded buffers |
 | `ViewModels/TelemetryViewModel` | GUI-thread properties and 50 ms refresh timer |
 | `TelemetryPanel.qml` | Endpoint controls, per-stream status/values, waveform Canvas |
+| `TrendControl.qml` | One selectable parameter trend, latest value and status |
 | `tools/TelemetryProbe.cpp` | Hardware-free connection diagnostic |
 
 The defaults are **temperature 1 Hz, pressure 10 Hz, waveform 100 Hz**. Network
@@ -134,10 +166,12 @@ The existing hardware cleanup remains in place.
 
 ## Shared contract and tests
 
-The contract is copied from server commit
+The original contract was copied from server commit
 [`25acd8c4db9ef359d74888b2bdefb4407e01a01a`](https://github.com/bflink/GrpcServerApp/blob/25acd8c4db9ef359d74888b2bdefb4407e01a01a/proto/telemetry.proto).
 Update both repositories together if the contract changes; generate bindings
 locally rather than copying Windows-generated binaries or headers.
+The PSC/STO2 update extends that contract with StreamMonitor and inactive
+waveform markers; both repository branches include the same updated file.
 
 CTest includes the original hardware-logic tests plus real loopback tests for
 all streams, bounded buffering, independent reconnection, stalled reads and

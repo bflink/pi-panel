@@ -6,6 +6,8 @@ service Telemetry {
   rpc StreamTemperature(StreamRequest) returns (stream TemperatureSample);
   rpc StreamPressure(StreamRequest) returns (stream PressureSample);
   rpc StreamWaveform(StreamRequest) returns (stream WaveformSample);
+  // Status on change, heartbeat at least once a second. Values only when due.
+  rpc StreamMonitor(MonitorRequest) returns (stream MonitorFrame);
 }
 
 message StreamRequest {
@@ -35,4 +37,32 @@ message PressureSample {
 message WaveformSample {
   SampleMetadata metadata = 1;
   double volts = 2;
+  // A status-only heartbeat while PSC cable/sensor is disconnected.
+  bool inactive = 3;
+}
+
+enum ParameterType {
+  PARAMETER_UNSPECIFIED = 0;
+  CO = 1; // L/min
+  SV = 2; // mL
+  SVV = 3; // percent
+  HR = 4; // beats/min
+  STO2_A1 = 5; // percent
+  STO2_A2 = 6;
+  STO2_B1 = 7;
+  STO2_B2 = 8;
+}
+message MonitorRequest {}
+message ParameterValue {
+  ParameterType type = 1;
+  double value = 2;
+}
+message MonitorFrame {
+  SampleMetadata metadata = 1;
+  bool psc_cable_connected = 2;
+  bool psc_sensor_connected = 3;
+  repeated ParameterType connected_sto2 = 4;
+  // Initial value on connection; PSC every 20 s, STO2 every 2 s.
+  // Absence of a value in a heartbeat does not invalidate the previous value.
+  repeated ParameterValue values = 5;
 }

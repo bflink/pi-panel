@@ -45,7 +45,7 @@ qt_add_qml_module(pi_panel
     URI PiPanel
     VERSION 1.0
     RESOURCE_PREFIX "/"
-    QML_FILES Main.qml TelemetryPanel.qml
+    QML_FILES Main.qml TelemetryPanel.qml TrendControl.qml
 )
 
 target_link_libraries(pi_panel PRIVATE

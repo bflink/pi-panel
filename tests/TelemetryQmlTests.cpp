@@ -45,6 +45,28 @@ class DisplayFixture final : public wire::Telemetry::Service
         return grpc::Status::OK;
     }
 public:
+    grpc::Status StreamMonitor(grpc::ServerContext* c, const wire::MonitorRequest*,
+                               grpc::ServerWriter<wire::MonitorFrame>* w) override
+    {
+        std::uint64_t sequence = 0;
+        while (!c->IsCancelled()) {
+            wire::MonitorFrame f;
+            f.mutable_metadata()->set_sequence(sequence);
+            f.mutable_metadata()->set_elapsed_seconds(static_cast<double>(sequence) * 2);
+            f.set_psc_cable_connected(true); f.set_psc_sensor_connected(true);
+            const double values[] = {5.1, 70, 9, 73, 70, 72, 74, 76};
+            for (int i = 0; i < 8; ++i) {
+                const auto type = static_cast<wire::ParameterType>(i + 1);
+                if (i >= 4) f.add_connected_sto2(type);
+                auto* v = f.add_values(); v->set_type(type);
+                v->set_value(values[i] + std::sin(static_cast<double>(sequence) / 5));
+            }
+            ++sequence;
+            if (!w->Write(f)) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        return grpc::Status::OK;
+    }
     grpc::Status StreamTemperature(grpc::ServerContext* c, const wire::StreamRequest*,
                                    grpc::ServerWriter<wire::TemperatureSample>* w) override
     { return send(c, w, [](auto& s, double) { s.set_celsius(23.5); }); }
@@ -84,11 +106,23 @@ int main(int argc, char** argv)
             if (window && tabs)
             {
                 tabs->setProperty("currentIndex", 1);
+                window->resize(480, 960);
                 telemetry.connectToServer(QStringLiteral("127.0.0.1:%1").arg(port));
                 // Let the five-second sweep wrap before checking the window.
                 QTimer::singleShot(6500, &app, [&] {
+                    const auto selectors = window->findChildren<QObject*>(QStringLiteral("trendSelector"));
+                    bool selectionWorks = selectors.size() == 2;
+                    if (selectionWorks) {
+                        selectors[0]->setProperty("currentIndex", 0);
+                        selectionWorks = selectors[0]->property("currentIndex").toInt() == 0;
+                        selectors[0]->setProperty("currentIndex", 1);
+                        selectors[1]->setProperty("currentIndex", 8);
+                        selectionWorks = selectionWorks && selectors[1]->property("currentIndex").toInt() == 8;
+                    }
                     const bool ready = telemetry.temperatureAvailable() && telemetry.pressureAvailable() &&
-                        telemetry.waveformAvailable() && telemetry.waveformPoints().size() > 5;
+                        telemetry.waveformAvailable() && telemetry.waveformPoints().size() > 5 &&
+                        telemetry.trendChannels().size() == 8 &&
+                        telemetry.trendChannels()[0].toMap()["points"].toList().size() > 5 && selectionWorks;
                     const bool captured = argc <= 1 ||
                         window->grabWindow().save(QString::fromLocal8Bit(argv[1]));
                     telemetry.disconnectFromServer();

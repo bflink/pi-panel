@@ -139,6 +139,17 @@ ScrollView {
             }
         }
         Label { text: "5-second sweep · 0–3.3 V" }
+        Label { text: "Trends · select up to two signals"; font.bold: true }
+        TrendControl {
+            width: parent.width
+            telemetryViewModel: panel.telemetryViewModel
+            initialSelection: 1
+        }
+        TrendControl {
+            width: parent.width
+            telemetryViewModel: panel.telemetryViewModel
+            initialSelection: 5
+        }
         Label {
             width: parent.width
             wrapMode: Text.Wrap
