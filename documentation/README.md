@@ -75,5 +75,6 @@ ctest --test-dir build --output-on-failure
 
 - [LED control](led.md)
 - [Thermistor and temperature](thermistor.md)
+- [Windows gRPC telemetry](telemetry.md)
 
 General setup, I2C configuration, and display-launch instructions remain in the project root `readme.md`.

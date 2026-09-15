@@ -4,15 +4,30 @@ import QtQuick.Controls
 ApplicationWindow {
     id: window
 
-    width: 420
-    height: 380
+    width: 480
+    height: 520
     visible: true
     title: "Pi Panel"
 
     required property QtObject ledViewModel
+    required property QtObject telemetryViewModel
+
+    header: TabBar {
+        id: tabs
+        objectName: "telemetryTabs"
+        TabButton { text: "Explorer HAT" }
+        TabButton { text: "Windows telemetry" }
+    }
+
+    ScrollView {
+        id: hardwarePage
+        anchors.fill: parent
+        visible: tabs.currentIndex === 0
+        padding: 20
+        contentWidth: availableWidth
 
     Column {
-        anchors.centerIn: parent
+        width: hardwarePage.availableWidth
         spacing: 20
 
         Rectangle {
@@ -75,5 +90,12 @@ ApplicationWindow {
                 ? window.ledViewModel.analogError
                 : window.ledViewModel.temperatureError
         }
+    }
+    }
+
+    TelemetryPanel {
+        anchors.fill: parent
+        visible: tabs.currentIndex === 1
+        telemetryViewModel: window.telemetryViewModel
     }
 }
