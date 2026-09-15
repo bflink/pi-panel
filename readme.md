@@ -1,5 +1,13 @@
 # Pi Panel — Run and Debug Cheat Sheet
 
+## Windows telemetry
+
+The **Windows telemetry** tab connects to the Windows gRPC simulator and shows
+temperature, pressure and a live waveform. See [telemetry setup](documentation/telemetry.md)
+for Pi packages, server startup, the `telemetry_probe` connection check, and
+optional `PI_PANEL_SERVER` auto-connect. The Explorer HAT tab keeps the existing
+hardware controls.
+
 The printable [Pi Panel Documentation Guide](documentation/pi-panel-guide.pdf) covers setup and operation. The separate [Software Design Description](documentation/pi-panel-sdd.pdf) records the software architecture and design baseline. Both PDFs are refreshed only when explicitly requested. Editable references are available in [`documentation/README.md`](documentation/README.md), with separate guides for the [LED](documentation/led.md) and [thermistor](documentation/thermistor.md).
 
 Bill’s current setup: C++ / Qt Quick application on the Pi, edited and debugged from VS Code on Windows. The default debug configuration displays the application on the Pi desktop and does not require PuTTY or XLaunch. A separate forwarded-X11 configuration remains available when displaying the window on Windows is useful.

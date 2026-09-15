@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QVariant>
 #include "ViewModels/LedViewModel.h"
+#include "ViewModels/TelemetryViewModel.h"
 
 #include <chrono>
 #include <csignal>
@@ -91,6 +92,9 @@ int main(int argc, char* argv[])
         Ads1015 adc{adcDevicePath()};
         Thermistor thermistor{thermistorConfiguration()};
         LedViewModel ledViewModel{ledController, adc, thermistor};
+        TelemetryViewModel telemetryViewModel;
+        QObject::connect(&application, &QCoreApplication::aboutToQuit,
+                         &telemetryViewModel, &TelemetryViewModel::disconnectFromServer);
 
         ButtonDebouncer buttonDebouncer{
             ledController.isButtonPressed(),
@@ -150,7 +154,9 @@ int main(int argc, char* argv[])
         QQmlApplicationEngine engine;
 
         engine.setInitialProperties({{QStringLiteral("ledViewModel"),
-                                      QVariant::fromValue(&ledViewModel)}});
+                                      QVariant::fromValue(&ledViewModel)},
+                                     {QStringLiteral("telemetryViewModel"),
+                                      QVariant::fromValue(&telemetryViewModel)}});
 
         engine.load(QUrl{QStringLiteral("qrc:/PiPanel/Main.qml")});
 
@@ -160,6 +166,9 @@ int main(int argc, char* argv[])
         ledViewModel.sampleAnalogInput();
         pollTimer.start();
         analogTimer.start();
+
+        const QString serverAddress = qEnvironmentVariable("PI_PANEL_SERVER");
+        if (!serverAddress.isEmpty()) telemetryViewModel.connectToServer(serverAddress);
 
         const int exitCode = application.exec();
 

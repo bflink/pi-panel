@@ -1,0 +1,38 @@
+syntax = "proto3";
+package pi.telemetry.v1;
+
+// Shared Windows/Pi wire contract. Generate bindings on each platform.
+service Telemetry {
+  rpc StreamTemperature(StreamRequest) returns (stream TemperatureSample);
+  rpc StreamPressure(StreamRequest) returns (stream PressureSample);
+  rpc StreamWaveform(StreamRequest) returns (stream WaveformSample);
+}
+
+message StreamRequest {
+  // Zero selects the default: temperature 1, pressure 10, waveform 100 Hz.
+  // Nonzero must be finite and in [0.1, 10], [0.1, 50], [0.1, 500], respectively.
+  double rate_hz = 1;
+  // Zero streams until cancellation/shutdown. Otherwise finish after this count.
+  uint64 max_samples = 2;
+}
+
+// Sequence starts at zero for EACH subscription; no replay across reconnects.
+// UTC Unix milliseconds are for display; elapsed_seconds is monotonic server
+// uptime for plotting and comparing streams. Scheduling is best effort.
+message SampleMetadata {
+  uint64 sequence = 1;
+  int64 unix_time_ms = 2;
+  double elapsed_seconds = 3;
+}
+message TemperatureSample {
+  SampleMetadata metadata = 1;
+  double celsius = 2;
+}
+message PressureSample {
+  SampleMetadata metadata = 1;
+  double kilopascals = 2;
+}
+message WaveformSample {
+  SampleMetadata metadata = 1;
+  double volts = 2;
+}
